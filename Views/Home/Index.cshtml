@@ -1,0 +1,1163 @@
+@{
+    ViewData["Title"] = "WorkBot";
+    Layout = null;
+}
+
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>WorkBot - Enhanced AI Assistant</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+        }
+        
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --secondary: #f8fafc;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --border-focus: rgba(99, 102, 241, 0.3);
+            --user-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --assistant-bg: #ffffff;
+            --glass-bg: rgba(255, 255, 255, 0.95);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --sidebar-bg: rgba(15, 23, 42, 0.95);
+            --sidebar-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bg-particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 8s ease-in-out infinite;
+        }
+
+        .particle:nth-child(1) { width: 20px; height: 20px; left: 10%; animation-delay: 0s; }
+        .particle:nth-child(2) { width: 15px; height: 15px; left: 30%; animation-delay: 2s; }
+        .particle:nth-child(3) { width: 25px; height: 25px; left: 60%; animation-delay: 4s; }
+        .particle:nth-child(4) { width: 18px; height: 18px; left: 80%; animation-delay: 1s; }
+
+        @@keyframes float {
+            0%, 100% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10%, 90% { opacity: 0.6; }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+
+        .app-container {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+            position: relative;
+            z-index: 1;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: var(--sidebar-bg);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--sidebar-border);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--sidebar-border);
+        }
+
+        .sidebar-header h2 {
+            color: white;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+
+        .new-chat-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .new-chat-btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .conversations-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .conversation-item {
+            padding: 12px;
+            margin-bottom: 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+
+        .conversation-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .conversation-item.active {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: var(--primary);
+        }
+
+        .conversation-title {
+            color: white;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .conversation-meta {
+            color: var(--text-muted);
+            font-size: 0.8em;
+        }
+
+        .sidebar-footer {
+            padding: 20px;
+            border-top: 1px solid var(--sidebar-border);
+        }
+
+        .user-info {
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 8px;
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--sidebar-border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: var(--error);
+            color: var(--error);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .header {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 20px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-left h1 { 
+            font-size: 1.8em; 
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .toggle-sidebar {
+            display: none;
+            padding: 8px 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        #chat {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            scroll-behavior: smooth;
+        }
+
+        #chat::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #chat::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        #chat::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+
+        .msg {
+            max-width: 80%;
+            padding: 16px 20px;
+            border-radius: 16px;
+            line-height: 1.6;
+            position: relative;
+            animation: messageSlide 0.4s ease-out;
+            font-size: 0.95em;
+            word-wrap: break-word;
+        }
+
+        @@keyframes messageSlide {
+            from { 
+                opacity: 0; 
+                transform: translateY(20px) scale(0.95); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0) scale(1); 
+            }
+        }
+
+        .user {
+            align-self: flex-end;
+            background: var(--user-bg);
+            color: white;
+            border-bottom-right-radius: 6px;
+        }
+
+        .assistant {
+            align-self: flex-start;
+            background: var(--assistant-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .file-indicator {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid var(--primary);
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-top: 8px;
+            font-size: 0.85em;
+            color: var(--primary);
+        }
+
+        .thinking-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 80%;
+            padding: 16px 20px;
+            border-radius: 16px;
+            background: var(--assistant-bg);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 6px;
+            animation: messageSlide 0.4s ease-out;
+        }
+
+        .thinking-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary);
+            animation: thinking 1.4s ease-in-out infinite both;
+        }
+
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @@keyframes thinking {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        .input-container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--glass-border);
+            padding: 20px 30px;
+        }
+
+        .file-upload-area {
+            margin-bottom: 15px;
+            padding: 15px;
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: white;
+        }
+
+        .file-upload-area:hover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .file-upload-area.dragover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+            transform: scale(1.02);
+        }
+
+        .upload-text {
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+
+        .upload-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .upload-btn {
+            padding: 8px 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .upload-btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .clear-files-btn {
+            background: var(--error);
+        }
+
+        .clear-files-btn:hover {
+            background: #dc2626;
+        }
+
+        .uploaded-files {
+            margin-bottom: 15px;
+        }
+
+        .file-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .file-tag {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid var(--primary);
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 0.85em;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            max-width: 200px;
+        }
+
+        .file-name {
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .file-size {
+            color: var(--text-muted);
+            font-size: 0.8em;
+        }
+
+        .remove-file {
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            font-weight: bold;
+            padding: 0 2px;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .remove-file:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .input-area {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+        }
+
+        .message-input-container {
+            flex: 1;
+            position: relative;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            resize: none;
+            min-height: 50px;
+            max-height: 120px;
+            font-size: 0.95em;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--border-focus);
+        }
+
+        .send-button {
+            padding: 15px 25px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 120px;
+            justify-content: center;
+        }
+
+        .send-button:hover:not(:disabled) {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .send-button:disabled {
+            background: var(--text-secondary);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        input[type="file"] { 
+            display: none; 
+        }
+
+        .status {
+            text-align: center;
+            margin-top: 15px;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state h3 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+
+        .empty-state p {
+            margin-bottom: 20px;
+        }
+
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .feature-item {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            text-align: left;
+        }
+
+        .feature-icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .feature-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .feature-desc {
+            font-size: 0.9em;
+            color: var(--text-secondary);
+        }
+
+        @@media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                z-index: 100;
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .toggle-sidebar {
+                display: block;
+            }
+
+            .main-content {
+                width: 100%;
+            }
+
+            .header, .input-container {
+                padding: 15px 20px;
+            }
+
+            #chat {
+                padding: 15px 20px;
+            }
+
+            .msg {
+                max-width: 90%;
+            }
+
+            .upload-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .input-area {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 99;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: var(--success);
+        }
+
+        .notification.error {
+            background: var(--error);
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-particles">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+
+    <div class="app-container">
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>💼 WorkBot</h2>
+                <button class="new-chat-btn" onclick="newConversation()">
+                    ➕ New Chat
+                </button>
+            </div>
+            
+            <div class="conversations-list" id="conversations-list">
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="user-info" id="user-info">
+                    <div>👤 @(User.Identity?.Name ?? "User")</div>
+                </div>
+                <button class="logout-btn" onclick="logout()">
+                    🚪 Logout
+                </button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="header">
+                <div class="header-left">
+                    <button class="toggle-sidebar" onclick="toggleSidebar()">☰</button>
+                    <h1>🧠 Enhanced WorkBot</h1>
+                </div>
+                <div class="header-right">
+                    <div class="status-indicator">
+                        <div class="status-dot"></div>
+                        <span>Ready</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="chat">
+                <div class="empty-state" id="empty-state">
+                    <h3>Welcome to Enhanced WorkBot!</h3>
+                    <p>Your intelligent AI assistant with memory and multi-file processing capabilities.</p>
+                    
+                    <div class="feature-list">
+                        <div class="feature-item">
+                            <div class="feature-icon">📁</div>
+                            <div class="feature-title">Multi-File Support</div>
+                            <div class="feature-desc">Upload multiple files (PDF, DOCX, images, CSV, JSON) and ask questions about them</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-icon">🧠</div>
+                            <div class="feature-title">Persistent Memory</div>
+                            <div class="feature-desc">Your conversations are saved and I remember context across sessions</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-icon">💬</div>
+                            <div class="feature-title">Enhanced Context</div>
+                            <div class="feature-desc">Larger token limits for detailed responses and complex analysis</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-icon">👤</div>
+                            <div class="feature-title">Personal Workspace</div>
+                            <div class="feature-desc">Your own account with private conversations and file history</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-container">
+                <div class="file-upload-area" id="file-upload-area" onclick="document.getElementById('file-input').click()">
+                    <div class="upload-text">
+                        📎 Drag & drop files here or click to upload
+                    </div>
+                    <div class="upload-buttons">
+                        <button type="button" class="upload-btn" onclick="document.getElementById('file-input').click()">
+                            📁 Choose Files
+                        </button>
+                        <button type="button" class="upload-btn clear-files-btn" onclick="clearAllFiles()" id="clear-files-btn" style="display: none;">
+                            🗑️ Clear All
+                        </button>
+                    </div>
+                    <input type="file" id="file-input" multiple accept=".txt,.pdf,.docx,.png,.jpg,.jpeg,.webp,.csv,.json">
+                </div>
+
+                <div class="uploaded-files" id="uploaded-files" style="display: none;">
+                    <div class="file-list" id="file-list"></div>
+                </div>
+
+                <form class="input-area" id="chat-form">
+                    <div class="message-input-container">
+                        <textarea 
+                            id="message_input" 
+                            name="message" 
+                            placeholder="Ask me anything or upload files to analyze..."
+                            rows="1"
+                        ></textarea>
+                    </div>
+                    
+                    <button type="submit" class="send-button" id="send-btn">
+                        <span>Send</span>
+                        <span>✈️</span>
+                    </button>
+                </form>
+                
+                <div id="status" class="status"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let thinkingIndicator = null;
+        let uploadedFiles = [];
+        let currentConversationId = null;
+        let sidebarOpen = false;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadConversations();
+            loadHistory();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            document.getElementById('file-input').addEventListener('change', handleFileSelect);
+            
+            const uploadArea = document.getElementById('file-upload-area');
+            uploadArea.addEventListener('dragover', handleDragOver);
+            uploadArea.addEventListener('dragleave', handleDragLeave);
+            uploadArea.addEventListener('drop', handleDrop);
+            
+            document.getElementById('chat-form').addEventListener('submit', handleSubmit);
+            document.getElementById('message_input').addEventListener('input', function(e) {
+                autoResize(e.target);
+            });
+            document.getElementById('message_input').addEventListener('keydown', handleKeyDown);
+            document.getElementById('overlay').addEventListener('click', closeSidebar);
+        }
+
+        function handleFileSelect(e) {
+            const files = Array.from(e.target.files);
+            uploadFiles(files);
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files);
+            uploadFiles(files);
+        }
+
+        async function uploadFiles(files) {
+            if (files.length === 0) return;
+            
+            const formData = new FormData();
+            files.forEach(file => formData.append('files', file));
+            
+            showStatus('Uploading files...', 'info');
+            
+            try {
+                const response = await fetch('/Api/UploadFiles', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    uploadedFiles = result.files || [];
+                    updateFileDisplay();
+                    showNotification(`Uploaded ${result.total} file(s) successfully!`, 'success');
+                    showStatus('');
+                } else {
+                    showNotification(result.error || 'Upload failed', 'error');
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                showNotification('Upload failed: ' + error.message, 'error');
+            }
+            
+            document.getElementById('file-input').value = '';
+        }
+
+        function updateFileDisplay() {
+            const fileList = document.getElementById('file-list');
+            const uploadedFilesDiv = document.getElementById('uploaded-files');
+            const clearBtn = document.getElementById('clear-files-btn');
+            
+            if (uploadedFiles.length === 0) {
+                uploadedFilesDiv.style.display = 'none';
+                clearBtn.style.display = 'none';
+                return;
+            }
+            
+            uploadedFilesDiv.style.display = 'block';
+            clearBtn.style.display = 'inline-block';
+            
+            fileList.innerHTML = uploadedFiles.map(file => `
+                <div class="file-tag">
+                    <span class="file-name" title="${file.name}">${file.name}</span>
+                    <span class="file-size">(${(file.size / 1024).toFixed(1)}KB)</span>
+                    <button class="remove-file" onclick="removeFile(${file.id})" title="Remove file">×</button>
+                </div>
+            `).join('');
+        }
+
+        async function removeFile(fileId) {
+            try {
+                const response = await fetch(`/Api/RemoveFile/${fileId}`);
+                if (response.ok) {
+                    uploadedFiles = uploadedFiles.filter(f => f.id !== fileId);
+                    updateFileDisplay();
+                    showNotification('File removed', 'success');
+                }
+            } catch (error) {
+                showNotification('Failed to remove file', 'error');
+            }
+        }
+
+        async function clearAllFiles() {
+            try {
+                const response = await fetch('/Api/ClearFiles');
+                if (response.ok) {
+                    uploadedFiles = [];
+                    updateFileDisplay();
+                    showNotification('All files cleared', 'success');
+                }
+            } catch (error) {
+                showNotification('Failed to clear files', 'error');
+            }
+        }
+
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+        }
+
+        function addMessage(role, text, hasFiles = false) {
+            const chat = document.getElementById("chat");
+            const emptyState = document.getElementById("empty-state");
+            
+            if (emptyState) {
+                emptyState.style.display = 'none';
+            }
+            
+            if (thinkingIndicator) {
+                thinkingIndicator.remove();
+                thinkingIndicator = null;
+            }
+            
+            const div = document.createElement("div");
+            div.className = `msg ${role}`;
+            
+            let content = text.replace(/\n/g, '<br>');
+            
+            if (role === 'user' && hasFiles) {
+                content += '<div class="file-indicator">📎 Message includes uploaded files</div>';
+            }
+            
+            div.innerHTML = content;
+            
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function showThinking() {
+            const chat = document.getElementById("chat");
+            const emptyState = document.getElementById("empty-state");
+            
+            if (emptyState) {
+                emptyState.style.display = 'none';
+            }
+            
+            thinkingIndicator = document.createElement("div");
+            thinkingIndicator.className = "thinking-indicator";
+            thinkingIndicator.innerHTML = `
+                <span>🧠 Thinking</span>
+                <div class="thinking-dots">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            `;
+            
+            chat.appendChild(thinkingIndicator);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        async function handleSubmit(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const message = formData.get("message");
+            const hasFiles = uploadedFiles.length > 0;
+
+            if (!message.trim() && !hasFiles) {
+                showNotification('Please enter a message or upload files', 'error');
+                return;
+            }
+
+            const sendBtn = document.getElementById("send-btn");
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<span>Sending...</span>';
+
+            if (message.trim()) {
+                addMessage("user", message.trim(), hasFiles);
+            } else if (hasFiles) {
+                addMessage("user", "Analyze uploaded files", true);
+            }
+
+            showThinking();
+            
+            e.target.reset();
+            document.getElementById("message_input").style.height = 'auto';
+
+            try {
+                const response = await fetch('/Api/Chat', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || `HTTP ${response.status}`);
+                }
+
+                if (result.error) {
+                    addMessage("assistant", "Warning: " + result.error);
+                } else if (result.reply) {
+                    addMessage("assistant", result.reply);
+                } else {
+                    addMessage("assistant", "Warning: No response received.");
+                }
+            } catch (error) {
+                console.error("Request error:", error);
+                addMessage("assistant", "Connection error: " + error.message);
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '<span>Send</span><span>✈️</span>';
+                loadConversations();
+            }
+        }
+
+        function handleKeyDown(e) {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                document.getElementById("chat-form").dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+            }
+        }
+
+        async function loadHistory() {
+            try {
+                const resp = await fetch('/Api/History');
+                const data = await resp.json();
+                
+                if (data.recent && Array.isArray(data.recent)) {
+                    data.recent.forEach(msg => {
+                        addMessage(msg.role, msg.content, msg.hasFiles || false);
+                    });
+                }
+                
+                if (data.files && Array.isArray(data.files)) {
+                    uploadedFiles = data.files;
+                    updateFileDisplay();
+                }
+                
+                currentConversationId = data.conversationId;
+            } catch (e) {
+                console.error("Failed to load history:", e);
+            }
+        }
+
+        async function loadConversations() {
+            try {
+                const resp = await fetch('/Api/Conversations');
+                const data = await resp.json();
+                
+                const conversationsList = document.getElementById('conversations-list');
+                
+                if (data.conversations && data.conversations.length > 0) {
+                    conversationsList.innerHTML = data.conversations.map(conv => `
+                        <div class="conversation-item ${conv.id === currentConversationId ? 'active' : ''}" 
+                             onclick="loadConversation('${conv.id}')">
+                            <div class="conversation-title">${conv.title}</div>
+                            <div class="conversation-meta">
+                                ${conv.message_count} messages • ${conv.updated_at}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    conversationsList.innerHTML = '<div class="conversation-item">No conversations yet<br><small>Click "New Chat" to start</small></div>';
+                }
+            } catch (e) {
+                console.error("Failed to load conversations:", e);
+            }
+        }
+
+        async function loadConversation(conversationId) {
+            try {
+                window.location.href = `/Home/LoadConversation/${conversationId}`;
+            } catch (e) {
+                console.error("Failed to load conversation:", e);
+            }
+        }
+
+        async function newConversation() {
+            try {
+                window.location.href = '/Home/NewConversation';
+            } catch (e) {
+                console.error("Failed to create new conversation:", e);
+            }
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/Account/Logout';
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            
+            sidebarOpen = !sidebarOpen;
+            
+            if (sidebarOpen) {
+                sidebar.classList.add('open');
+                overlay.classList.add('show');
+            } else {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('show');
+            }
+        }
+
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            
+            sidebarOpen = false;
+            sidebar.classList.remove('open');
+            overlay.classList.remove('show');
+        }
+
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => notification.classList.add('show'), 100);
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
