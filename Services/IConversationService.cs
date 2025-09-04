@@ -11,5 +11,6 @@ namespace WorkBot.Services
         Task<List<MessageDto>> GetRecentMessagesAsync(string conversationId, int limit = 30);
         Task SaveMessageAsync(string conversationId, string role, string content, bool hasFiles = false);
         Task UpdateConversationTimestampAsync(string conversationId);
+        Task<bool> DeleteConversationAsync(string conversationId, int userId);
     }
 }

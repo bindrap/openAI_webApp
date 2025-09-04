@@ -17,60 +17,67 @@
         }
         
         :root {
-            --primary: #6366f1;
-            --primary-hover: #4f46e5;
-            --secondary: #f8fafc;
+            --primary: #00d4ff;
+            --primary-hover: #00b4e6;
+            --secondary: #0a0e1a;
+            --accent: #7c3aed;
             --success: #10b981;
             --warning: #f59e0b;
             --error: #ef4444;
-            --text-primary: #0f172a;
-            --text-secondary: #64748b;
-            --text-muted: #94a3b8;
-            --border: #e2e8f0;
-            --border-focus: rgba(99, 102, 241, 0.3);
-            --user-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --assistant-bg: #ffffff;
-            --glass-bg: rgba(255, 255, 255, 0.95);
-            --glass-border: rgba(255, 255, 255, 0.2);
-            --sidebar-bg: rgba(15, 23, 42, 0.95);
-            --sidebar-border: rgba(255, 255, 255, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --text-muted: #6b7280;
+            --border: #374151;
+            --border-focus: rgba(0, 212, 255, 0.5);
+            --user-bg: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            --assistant-bg: rgba(10, 14, 26, 0.8);
+            --glass-bg: rgba(10, 14, 26, 0.85);
+            --glass-border: rgba(0, 212, 255, 0.2);
+            --sidebar-bg: rgba(0, 0, 0, 0.9);
+            --sidebar-border: rgba(0, 212, 255, 0.3);
+            --neon-glow: 0 0 20px rgba(0, 212, 255, 0.3);
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            background: url('/images/windsorSunset.jpg') center/cover no-repeat fixed;
             min-height: 100vh;
             display: flex;
             position: relative;
             overflow: hidden;
         }
 
-        .bg-particles {
+        body::before {
+            content: '';
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            overflow: hidden;
+            background: linear-gradient(135deg, 
+                rgba(0, 212, 255, 0.1) 0%, 
+                rgba(124, 58, 237, 0.15) 50%, 
+                rgba(10, 14, 26, 0.8) 100%);
             z-index: 0;
         }
 
-        .particle {
+        .bg-grid {
             position: absolute;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            animation: float 8s ease-in-out infinite;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 212, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 212, 255, 0.05) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+            z-index: 1;
         }
 
-        .particle:nth-child(1) { width: 20px; height: 20px; left: 10%; animation-delay: 0s; }
-        .particle:nth-child(2) { width: 15px; height: 15px; left: 30%; animation-delay: 2s; }
-        .particle:nth-child(3) { width: 25px; height: 25px; left: 60%; animation-delay: 4s; }
-        .particle:nth-child(4) { width: 18px; height: 18px; left: 80%; animation-delay: 1s; }
-
-        @@keyframes float {
-            0%, 100% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
-            10%, 90% { opacity: 0.6; }
-            50% { transform: translateY(-20px) rotate(180deg); }
+        @@keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
         }
 
         .app-container {
@@ -78,76 +85,120 @@
             width: 100%;
             height: 100vh;
             position: relative;
-            z-index: 1;
+            z-index: 10;
         }
 
         .sidebar {
-            width: 300px;
+            width: 320px;
             background: var(--sidebar-bg);
             backdrop-filter: blur(20px);
-            border-right: 1px solid var(--sidebar-border);
+            border-right: 2px solid var(--sidebar-border);
             display: flex;
             flex-direction: column;
-            transition: transform 0.3s ease;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--neon-glow);
         }
 
         .sidebar-header {
-            padding: 20px;
-            border-bottom: 1px solid var(--sidebar-border);
+            padding: 25px;
+            border-bottom: 2px solid var(--sidebar-border);
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(124, 58, 237, 0.1));
         }
 
         .sidebar-header h2 {
-            color: white;
-            font-size: 1.2em;
-            margin-bottom: 10px;
+            color: var(--text-primary);
+            font-size: 1.4em;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .windsor-logo-small {
+            width: 30px;
+            height: 30px;
+            background: url('/images/windsorLogo.png') center/contain no-repeat;
+            filter: drop-shadow(0 0 5px rgba(0, 212, 255, 0.5));
         }
 
         .new-chat-btn {
             width: 100%;
-            padding: 12px;
-            background: var(--primary);
+            padding: 15px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s ease;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .new-chat-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .new-chat-btn:hover::before {
+            left: 100%;
         }
 
         .new-chat-btn:hover {
-            background: var(--primary-hover);
-            transform: translateY(-1px);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.4);
         }
 
         .conversations-list {
             flex: 1;
             overflow-y: auto;
-            padding: 10px;
+            padding: 15px;
         }
 
         .conversation-item {
-            padding: 12px;
-            margin-bottom: 5px;
-            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 8px;
+            border-radius: 12px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             border: 1px solid transparent;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
         }
 
         .conversation-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(0, 212, 255, 0.1);
+            border-color: var(--primary);
+            transform: translateX(5px);
         }
 
         .conversation-item.active {
-            background: rgba(99, 102, 241, 0.2);
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(124, 58, 237, 0.2));
             border-color: var(--primary);
+            box-shadow: inset 0 0 20px rgba(0, 212, 255, 0.2);
+        }
+
+        .conversation-content {
+            flex: 1;
         }
 
         .conversation-title {
-            color: white;
-            font-weight: 500;
-            margin-bottom: 4px;
+            color: var(--text-primary);
+            font-weight: 600;
+            margin-bottom: 6px;
         }
 
         .conversation-meta {
@@ -155,31 +206,71 @@
             font-size: 0.8em;
         }
 
+        .delete-conversation {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            opacity: 0;
+        }
+
+        .conversation-item:hover .delete-conversation {
+            opacity: 1;
+        }
+
+        .delete-conversation:hover {
+            background: var(--error);
+            color: white;
+            transform: scale(1.1);
+        }
+
         .sidebar-footer {
-            padding: 20px;
-            border-top: 1px solid var(--sidebar-border);
+            padding: 25px;
+            border-top: 2px solid var(--sidebar-border);
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(124, 58, 237, 0.1));
         }
 
         .user-info {
-            color: white;
-            margin-bottom: 10px;
+            color: var(--text-primary);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
         }
 
         .logout-btn {
             width: 100%;
-            padding: 8px;
+            padding: 12px;
             background: transparent;
-            color: var(--text-muted);
-            border: 1px solid var(--sidebar-border);
-            border-radius: 6px;
+            color: var(--text-secondary);
+            border: 2px solid var(--border);
+            border-radius: 10px;
             cursor: pointer;
             transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
         }
 
         .logout-btn:hover {
-            background: rgba(239, 68, 68, 0.1);
+            background: rgba(239, 68, 68, 0.2);
             border-color: var(--error);
             color: var(--error);
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
         }
 
         .main-content {
@@ -192,50 +283,57 @@
         .header {
             background: var(--glass-bg);
             backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--glass-border);
-            padding: 20px 30px;
+            border-bottom: 2px solid var(--glass-border);
+            padding: 25px 35px;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
 
         .header-left {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 20px;
         }
 
         .header-left h1 { 
-            font-size: 1.8em; 
+            font-size: 2em; 
             font-weight: 700;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.3));
         }
 
         .header-right {
             display: flex;
-            gap: 15px;
+            gap: 20px;
             align-items: center;
         }
 
         .toggle-sidebar {
             display: none;
-            padding: 8px 12px;
-            background: var(--primary);
+            padding: 10px 15px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
             color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
+            transition: all 0.3s ease;
         }
 
         .status-indicator {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             color: var(--text-secondary);
             font-size: 0.9em;
+            padding: 8px 16px;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 20px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
         }
 
         .status-dot {
@@ -243,47 +341,56 @@
             height: 8px;
             border-radius: 50%;
             background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @@keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
 
         #chat {
             flex: 1;
             overflow-y: auto;
-            padding: 20px 30px;
+            padding: 25px 35px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 25px;
             scroll-behavior: smooth;
         }
 
         #chat::-webkit-scrollbar {
-            width: 8px;
+            width: 12px;
         }
 
         #chat::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
         }
 
         #chat::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 4px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 6px;
+            box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
         }
 
         .msg {
             max-width: 80%;
-            padding: 16px 20px;
-            border-radius: 16px;
+            padding: 20px 25px;
+            border-radius: 20px;
             line-height: 1.6;
             position: relative;
-            animation: messageSlide 0.4s ease-out;
+            animation: messageSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             font-size: 0.95em;
             word-wrap: break-word;
+            backdrop-filter: blur(10px);
+            border: 1px solid transparent;
         }
 
         @@keyframes messageSlide {
             from { 
                 opacity: 0; 
-                transform: translateY(20px) scale(0.95); 
+                transform: translateY(30px) scale(0.95); 
             }
             to { 
                 opacity: 1; 
@@ -295,148 +402,163 @@
             align-self: flex-end;
             background: var(--user-bg);
             color: white;
-            border-bottom-right-radius: 6px;
+            border-bottom-right-radius: 8px;
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
         }
 
         .assistant {
             align-self: flex-start;
             background: var(--assistant-bg);
             color: var(--text-primary);
-            border: 1px solid var(--border);
-            border-bottom-left-radius: 6px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid var(--glass-border);
+            border-bottom-left-radius: 8px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
         }
 
         .file-indicator {
-            background: rgba(99, 102, 241, 0.1);
-            border: 1px solid var(--primary);
-            border-radius: 8px;
-            padding: 8px 12px;
-            margin-top: 8px;
+            background: rgba(124, 58, 237, 0.2);
+            border: 1px solid var(--accent);
+            border-radius: 10px;
+            padding: 10px 15px;
+            margin-top: 12px;
             font-size: 0.85em;
-            color: var(--primary);
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .thinking-indicator {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 15px;
             max-width: 80%;
-            padding: 16px 20px;
-            border-radius: 16px;
+            padding: 20px 25px;
+            border-radius: 20px;
             background: var(--assistant-bg);
-            border: 1px solid var(--border);
-            border-bottom-left-radius: 6px;
+            border: 1px solid var(--glass-border);
+            border-bottom-left-radius: 8px;
             animation: messageSlide 0.4s ease-out;
+            backdrop-filter: blur(10px);
         }
 
         .thinking-dots {
             display: flex;
-            gap: 4px;
+            gap: 6px;
         }
 
         .dot {
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
             background: var(--primary);
             animation: thinking 1.4s ease-in-out infinite both;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
         }
 
         .dot:nth-child(1) { animation-delay: -0.32s; }
         .dot:nth-child(2) { animation-delay: -0.16s; }
 
         @@keyframes thinking {
-            0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
-            40% { transform: scale(1); opacity: 1; }
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1.2); opacity: 1; }
         }
 
         .input-container {
             background: var(--glass-bg);
             backdrop-filter: blur(20px);
-            border-top: 1px solid var(--glass-border);
-            padding: 20px 30px;
+            border-top: 2px solid var(--glass-border);
+            padding: 25px 35px;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
         }
 
         .file-upload-area {
-            margin-bottom: 15px;
-            padding: 15px;
+            margin-bottom: 20px;
+            padding: 20px;
             border: 2px dashed var(--border);
-            border-radius: 12px;
+            border-radius: 15px;
             text-align: center;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
-            background: white;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
         }
 
         .file-upload-area:hover {
             border-color: var(--primary);
-            background: rgba(99, 102, 241, 0.05);
+            background: rgba(0, 212, 255, 0.1);
+            box-shadow: inset 0 0 20px rgba(0, 212, 255, 0.2);
         }
 
         .file-upload-area.dragover {
             border-color: var(--primary);
-            background: rgba(99, 102, 241, 0.1);
+            background: rgba(0, 212, 255, 0.2);
             transform: scale(1.02);
+            box-shadow: var(--neon-glow);
         }
 
         .upload-text {
             color: var(--text-secondary);
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            font-size: 1.1em;
         }
 
         .upload-buttons {
             display: flex;
-            gap: 10px;
+            gap: 15px;
             justify-content: center;
             flex-wrap: wrap;
         }
 
         .upload-btn {
-            padding: 8px 16px;
-            background: var(--primary);
+            padding: 12px 20px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
             font-size: 0.9em;
-            transition: all 0.3s ease;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .upload-btn:hover {
-            background: var(--primary-hover);
-            transform: translateY(-1px);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
         }
 
         .clear-files-btn {
-            background: var(--error);
+            background: linear-gradient(135deg, var(--error) 0%, #dc2626 100%);
         }
 
         .clear-files-btn:hover {
-            background: #dc2626;
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
         }
 
         .uploaded-files {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
 
         .file-list {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 10px;
         }
 
         .file-tag {
-            background: rgba(99, 102, 241, 0.1);
-            border: 1px solid var(--primary);
-            border-radius: 20px;
-            padding: 6px 12px;
+            background: rgba(124, 58, 237, 0.2);
+            border: 1px solid var(--accent);
+            border-radius: 25px;
+            padding: 8px 15px;
             font-size: 0.85em;
-            color: var(--primary);
+            color: var(--accent);
             display: flex;
             align-items: center;
-            gap: 6px;
-            max-width: 200px;
+            gap: 8px;
+            max-width: 250px;
+            backdrop-filter: blur(10px);
         }
 
         .file-name {
@@ -453,22 +575,23 @@
         .remove-file {
             background: none;
             border: none;
-            color: var(--primary);
+            color: var(--accent);
             cursor: pointer;
             font-weight: bold;
-            padding: 0 2px;
+            padding: 2px 6px;
             border-radius: 50%;
             transition: all 0.2s ease;
         }
 
         .remove-file:hover {
-            background: var(--primary);
+            background: var(--accent);
             color: white;
+            transform: scale(1.2);
         }
 
         .input-area {
             display: flex;
-            gap: 15px;
+            gap: 20px;
             align-items: flex-end;
         }
 
@@ -479,48 +602,56 @@
 
         textarea {
             width: 100%;
-            padding: 15px 20px;
+            padding: 18px 25px;
             border: 2px solid var(--border);
-            border-radius: 12px;
+            border-radius: 15px;
             resize: none;
-            min-height: 50px;
-            max-height: 120px;
+            min-height: 60px;
+            max-height: 150px;
             font-size: 0.95em;
             font-family: inherit;
-            transition: all 0.3s ease;
-            background: white;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(0, 0, 0, 0.4);
+            color: var(--text-primary);
+            backdrop-filter: blur(10px);
         }
 
         textarea:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px var(--border-focus);
+            box-shadow: 0 0 25px var(--border-focus);
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        textarea::placeholder {
+            color: var(--text-muted);
         }
 
         .send-button {
-            padding: 15px 25px;
-            background: var(--primary);
+            padding: 18px 30px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
             color: white;
             border: none;
-            border-radius: 12px;
+            border-radius: 15px;
             cursor: pointer;
             font-weight: 600;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             align-items: center;
-            gap: 8px;
-            min-width: 120px;
+            gap: 10px;
+            min-width: 140px;
             justify-content: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .send-button:hover:not(:disabled) {
-            background: var(--primary-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.4);
         }
 
         .send-button:disabled {
-            background: var(--text-secondary);
+            background: linear-gradient(135deg, var(--text-secondary), var(--border));
             cursor: not-allowed;
             transform: none;
         }
@@ -529,60 +660,68 @@
             display: none; 
         }
 
-        .status {
-            text-align: center;
-            margin-top: 15px;
-            color: var(--text-secondary);
-            font-size: 0.9em;
-        }
-
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
+            padding: 80px 40px;
             color: var(--text-secondary);
         }
 
         .empty-state h3 {
-            font-size: 1.2em;
-            margin-bottom: 10px;
+            font-size: 1.5em;
+            margin-bottom: 15px;
             color: var(--text-primary);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .empty-state p {
-            margin-bottom: 20px;
+            margin-bottom: 30px;
+            font-size: 1.1em;
         }
 
         .feature-list {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            max-width: 800px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            max-width: 900px;
             margin: 0 auto;
         }
 
         .feature-item {
             background: var(--glass-bg);
             backdrop-filter: blur(20px);
-            padding: 20px;
-            border-radius: 12px;
-            border: 1px solid var(--glass-border);
+            padding: 25px;
+            border-radius: 15px;
+            border: 2px solid var(--glass-border);
             text-align: left;
+            transition: all 0.3s ease;
+        }
+
+        .feature-item:hover {
+            border-color: var(--primary);
+            box-shadow: var(--neon-glow);
+            transform: translateY(-5px);
         }
 
         .feature-icon {
-            font-size: 2em;
-            margin-bottom: 10px;
+            font-size: 2.5em;
+            margin-bottom: 15px;
+            filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.5));
         }
 
         .feature-title {
-            font-weight: 600;
-            margin-bottom: 8px;
+            font-weight: 700;
+            margin-bottom: 12px;
             color: var(--text-primary);
+            font-size: 1.1em;
         }
 
         .feature-desc {
-            font-size: 0.9em;
+            font-size: 0.95em;
             color: var(--text-secondary);
+            line-height: 1.5;
         }
 
         @@media (max-width: 768px) {
@@ -591,7 +730,7 @@
                 top: 0;
                 left: 0;
                 height: 100vh;
-                z-index: 100;
+                z-index: 1000;
                 transform: translateX(-100%);
             }
 
@@ -608,15 +747,15 @@
             }
 
             .header, .input-container {
-                padding: 15px 20px;
+                padding: 20px;
             }
 
             #chat {
-                padding: 15px 20px;
+                padding: 20px;
             }
 
             .msg {
-                max-width: 90%;
+                max-width: 95%;
             }
 
             .upload-buttons {
@@ -626,7 +765,7 @@
 
             .input-area {
                 flex-direction: column;
-                gap: 10px;
+                gap: 15px;
             }
         }
 
@@ -636,8 +775,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 99;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999;
             opacity: 0;
             visibility: hidden;
             transition: all 0.3s ease;
@@ -650,15 +789,17 @@
 
         .notification {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 12px 20px;
-            border-radius: 8px;
+            top: 25px;
+            right: 25px;
+            padding: 15px 25px;
+            border-radius: 12px;
             color: white;
-            font-weight: 500;
-            z-index: 1000;
+            font-weight: 600;
+            z-index: 10000;
             transform: translateX(100%);
-            transition: transform 0.3s ease;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(20px);
+            border: 1px solid;
         }
 
         .notification.show {
@@ -666,30 +807,30 @@
         }
 
         .notification.success {
-            background: var(--success);
+            background: rgba(16, 185, 129, 0.9);
+            border-color: var(--success);
         }
 
         .notification.error {
-            background: var(--error);
+            background: rgba(239, 68, 68, 0.9);
+            border-color: var(--error);
         }
     </style>
 </head>
 <body>
-    <div class="bg-particles">
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-    </div>
+    <div class="bg-grid"></div>
 
     <div class="overlay" id="overlay"></div>
 
     <div class="app-container">
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <h2>💼 WorkBot</h2>
+                <h2>
+                    <div class="windsor-logo-small"></div>
+                    WorkBot
+                </h2>
                 <button class="new-chat-btn" onclick="newConversation()">
-                    ➕ New Chat
+                    ➕ New Session
                 </button>
             </div>
             
@@ -698,10 +839,11 @@
             
             <div class="sidebar-footer">
                 <div class="user-info" id="user-info">
-                    <div>👤 @(User.Identity?.Name ?? "User")</div>
+                    <div class="user-avatar">@(User.Identity?.Name?.Substring(0, 1).ToUpper() ?? "U")</div>
+                    <div>@(User.Identity?.Name ?? "User")</div>
                 </div>
                 <button class="logout-btn" onclick="logout()">
-                    🚪 Logout
+                    🚪 Disconnect
                 </button>
             </div>
         </div>
@@ -715,7 +857,7 @@
                 <div class="header-right">
                     <div class="status-indicator">
                         <div class="status-dot"></div>
-                        <span>Ready</span>
+                        <span>System Online</span>
                     </div>
                 </div>
             </div>
@@ -729,7 +871,7 @@
                         <div class="feature-item">
                             <div class="feature-icon">📁</div>
                             <div class="feature-title">Multi-File Support</div>
-                            <div class="feature-desc">Upload multiple files (PDF, DOCX, images, CSV, JSON) and ask questions about them</div>
+                            <div class="feature-desc">Upload multiple files including ZIP archives, PDFs, DOCX, images, CSV, JSON and ask questions about them</div>
                         </div>
                         <div class="feature-item">
                             <div class="feature-icon">🧠</div>
@@ -753,7 +895,7 @@
             <div class="input-container">
                 <div class="file-upload-area" id="file-upload-area" onclick="document.getElementById('file-input').click()">
                     <div class="upload-text">
-                        📎 Drag & drop files here or click to upload
+                        📎 Drag & drop files here or click to upload (including ZIP files)
                     </div>
                     <div class="upload-buttons">
                         <button type="button" class="upload-btn" onclick="document.getElementById('file-input').click()">
@@ -763,7 +905,7 @@
                             🗑️ Clear All
                         </button>
                     </div>
-                    <input type="file" id="file-input" multiple accept=".txt,.pdf,.docx,.png,.jpg,.jpeg,.webp,.csv,.json">
+                    <input type="file" id="file-input" multiple accept=".txt,.pdf,.docx,.png,.jpg,.jpeg,.webp,.csv,.json,.zip">
                 </div>
 
                 <div class="uploaded-files" id="uploaded-files" style="display: none;">
@@ -782,11 +924,9 @@
                     
                     <button type="submit" class="send-button" id="send-btn">
                         <span>Send</span>
-                        <span>✈️</span>
+                        <span>🚀</span>
                     </button>
                 </form>
-                
-                <div id="status" class="status"></div>
             </div>
         </div>
     </div>
@@ -847,7 +987,7 @@
             const formData = new FormData();
             files.forEach(file => formData.append('files', file));
             
-            showStatus('Uploading files...', 'info');
+            showNotification(`Uploading ${files.length} file(s)...`, 'info');
             
             try {
                 const response = await fetch('/Api/UploadFiles', {
@@ -861,7 +1001,6 @@
                     uploadedFiles = result.files || [];
                     updateFileDisplay();
                     showNotification(`Uploaded ${result.total} file(s) successfully!`, 'success');
-                    showStatus('');
                 } else {
                     showNotification(result.error || 'Upload failed', 'error');
                 }
@@ -922,9 +1061,42 @@
             }
         }
 
+        async function deleteConversation(conversationId) {
+            if (!confirm('Are you sure you want to delete this conversation?')) {
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('conversationId', conversationId);
+                
+                const response = await fetch('/Api/DeleteConversation', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('Conversation deleted', 'success');
+                    loadConversations();
+                    
+                    if (conversationId === currentConversationId) {
+                        document.getElementById('chat').innerHTML = '<div class="empty-state" id="empty-state"><h3>Conversation Deleted</h3><p>Start a new conversation or select an existing one.</p></div>';
+                        currentConversationId = null;
+                    }
+                } else {
+                    showNotification(result.error || 'Failed to delete conversation', 'error');
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                showNotification('Failed to delete conversation', 'error');
+            }
+        }
+
         function autoResize(textarea) {
             textarea.style.height = 'auto';
-            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+            textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
         }
 
         function addMessage(role, text, hasFiles = false) {
@@ -966,7 +1138,7 @@
             thinkingIndicator = document.createElement("div");
             thinkingIndicator.className = "thinking-indicator";
             thinkingIndicator.innerHTML = `
-                <span>🧠 Thinking</span>
+                <span>🧠 Processing</span>
                 <div class="thinking-dots">
                     <div class="dot"></div>
                     <div class="dot"></div>
@@ -992,7 +1164,7 @@
 
             const sendBtn = document.getElementById("send-btn");
             sendBtn.disabled = true;
-            sendBtn.innerHTML = '<span>Sending...</span>';
+            sendBtn.innerHTML = '<span>Sending...</span><span>⏳</span>';
 
             if (message.trim()) {
                 addMessage("user", message.trim(), hasFiles);
@@ -1029,7 +1201,7 @@
                 addMessage("assistant", "Connection error: " + error.message);
             } finally {
                 sendBtn.disabled = false;
-                sendBtn.innerHTML = '<span>Send</span><span>✈️</span>';
+                sendBtn.innerHTML = '<span>Send</span><span>🚀</span>';
                 loadConversations();
             }
         }
@@ -1074,14 +1246,19 @@
                     conversationsList.innerHTML = data.conversations.map(conv => `
                         <div class="conversation-item ${conv.id === currentConversationId ? 'active' : ''}" 
                              onclick="loadConversation('${conv.id}')">
-                            <div class="conversation-title">${conv.title}</div>
-                            <div class="conversation-meta">
-                                ${conv.message_count} messages • ${conv.updated_at}
+                            <div class="conversation-content">
+                                <div class="conversation-title">${conv.title}</div>
+                                <div class="conversation-meta">
+                                    ${conv.message_count} messages • ${conv.updated_at}
+                                </div>
                             </div>
+                            <button class="delete-conversation" onclick="event.stopPropagation(); deleteConversation('${conv.id}')" title="Delete conversation">
+                                🗑️
+                            </button>
                         </div>
                     `).join('');
                 } else {
-                    conversationsList.innerHTML = '<div class="conversation-item">No conversations yet<br><small>Click "New Chat" to start</small></div>';
+                    conversationsList.innerHTML = '<div class="conversation-item">No conversations yet<br><small>Click "New Session" to start</small></div>';
                 }
             } catch (e) {
                 console.error("Failed to load conversations:", e);
@@ -1105,7 +1282,7 @@
         }
 
         function logout() {
-            if (confirm('Are you sure you want to logout?')) {
+            if (confirm('Are you sure you want to disconnect?')) {
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = '/Account/Logout';
@@ -1136,12 +1313,6 @@
             sidebarOpen = false;
             sidebar.classList.remove('open');
             overlay.classList.remove('show');
-        }
-
-        function showStatus(message, type = 'info') {
-            const statusDiv = document.getElementById('status');
-            statusDiv.textContent = message;
-            statusDiv.className = `status ${type}`;
         }
 
         function showNotification(message, type = 'info') {

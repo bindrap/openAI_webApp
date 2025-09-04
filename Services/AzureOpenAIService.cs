@@ -36,8 +36,7 @@ namespace WorkBot.Services
                 var requestBody = new
                 {
                     messages = messages,
-                    max_tokens = 4000,
-                    temperature = 0.7
+                    max_completion_tokens = 4000
                 };
 
                 var json = JsonSerializer.Serialize(requestBody);

@@ -1,1 +1,52 @@
+# Azure Open A.I Credentials
 appsettings.json
+
+# Build Folders
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+.project
+*.vs/
+.vs/
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# Compiled ASP.NET files
+**/apphost.exe
+**/*.dll
+**/*.exe
+**/*.pdb
+**/*.dll.config
+**/*.exe.config
+
+# Logs
+logs/
+*.log
+
+# Environment
+.env
+
+# IDE
+.idea/
+*.swp
+*~
+
+# Static web assets cache
+**/rjimswa*.dswa.cache.json
+**/rjsmcshtml*.dswa.cache.json
+**/rjsmrazor*.dswa.cache.json
+**/rpswa*.dswa.cache.json
+**/staticwebassets*.json
+**/staticwebassets*.cache
+
+# macOS
+.DS_Store
+
+# Visual Studio Code
+.vscode/

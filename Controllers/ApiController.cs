@@ -163,6 +163,42 @@ namespace WorkBot.Controllers
             });
         }
 
+        // Add this method to your existing ApiController
+        [HttpPost]
+        public async Task<IActionResult> DeleteConversation([FromForm] string conversationId)
+        {
+            var userId = GetCurrentUserId();
+            
+            try
+            {
+                Console.WriteLine($"[DELETE_CONV_API] Delete request for conversation {conversationId} by user {userId}");
+                
+                var success = await _conversationService.DeleteConversationAsync(conversationId, userId);
+                
+                if (success)
+                {
+                    // If this was the current conversation, clear the session
+                    var currentConversationId = HttpContext.Session.GetString("ConversationId");
+                    if (currentConversationId == conversationId)
+                    {
+                        HttpContext.Session.Remove("ConversationId");
+                        HttpContext.Session.Remove("SessionId");
+                    }
+                    
+                    return Json(new { success = true, message = "Conversation deleted successfully" });
+                }
+                else
+                {
+                    return Json(new { success = false, error = "Conversation not found or access denied" });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[DELETE_CONV_API] Error: {ex.Message}");
+                return Json(new { success = false, error = $"Error deleting conversation: {ex.Message}" });
+            }
+        }
+
         private string BuildCompleteMessage(string userMessage, List<SessionFileDto> sessionFiles)
         {
             var completeMessage = "";

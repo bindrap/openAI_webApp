@@ -121,6 +121,45 @@ namespace WorkBot.Services
             }
         }
 
+        public async Task<bool> DeleteConversationAsync(string conversationId, int userId)
+        {
+            try
+            {
+                Console.WriteLine($"[DELETE_CONVERSATION] Attempting to delete conversation {conversationId} for user {userId}");
+                
+                var conversation = await _context.Conversations
+                    .FirstOrDefaultAsync(c => c.Id == conversationId && c.UserId == userId && c.IsActive);
+
+                if (conversation == null)
+                {
+                    Console.WriteLine($"[DELETE_CONVERSATION] Conversation not found or access denied");
+                    return false;
+                }
+
+                // Soft delete - mark as inactive instead of hard delete
+                conversation.IsActive = false;
+                conversation.UpdatedAt = DateTime.UtcNow;
+
+                // Also soft delete associated messages
+                var messages = await _context.Messages
+                    .Where(m => m.ConversationId == conversationId)
+                    .ToListAsync();
+
+                // Note: Messages don't have IsActive field in current schema, 
+                // so we'll leave them but the conversation is marked inactive
+
+                await _context.SaveChangesAsync();
+                
+                Console.WriteLine($"[DELETE_CONVERSATION] Successfully deleted conversation {conversationId}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[DELETE_CONVERSATION] Error: {ex.Message}");
+                return false;
+            }
+        }
+
         private int EstimateTokens(string text)
         {
             return text.Length / 4; // Rough estimation

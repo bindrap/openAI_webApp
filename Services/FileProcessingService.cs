@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
+using System.IO.Compression;
 using WorkBot.Data;
 using WorkBot.Models;
 
@@ -10,7 +11,7 @@ namespace WorkBot.Services
         private readonly WorkBotDbContext _context;
         private readonly IWebHostEnvironment _environment;
         private readonly string _uploadPath;
-        private readonly HashSet<string> _allowedExtensions = new() { ".txt", ".pdf", ".docx", ".png", ".jpg", ".jpeg", ".webp", ".csv", ".json" };
+        private readonly HashSet<string> _allowedExtensions = new() { ".txt", ".pdf", ".docx", ".png", ".jpg", ".jpeg", ".webp", ".csv", ".json", ".zip" };
 
         public FileProcessingService(WorkBotDbContext context, IWebHostEnvironment environment)
         {
@@ -139,6 +140,7 @@ namespace WorkBot.Services
                     ".txt" => await File.ReadAllTextAsync(filePath),
                     ".json" => await File.ReadAllTextAsync(filePath),
                     ".csv" => await ExtractTextFromCsvAsync(filePath),
+                    ".zip" => await ExtractTextFromZipAsync(filePath),
                     ".pdf" => "[PDF text extraction - requires PDF library implementation]",
                     ".docx" => "[DOCX text extraction - requires OpenXML library implementation]",
                     ".png" or ".jpg" or ".jpeg" or ".webp" => "[OCR text extraction - requires Azure Cognitive Services implementation]",
@@ -148,6 +150,61 @@ namespace WorkBot.Services
             catch (Exception ex)
             {
                 return $"[ERROR: Could not extract text] {ex.Message}";
+            }
+        }
+
+        private async Task<string> ExtractTextFromZipAsync(string filePath)
+        {
+            try
+            {
+                var extractedContent = new List<string>();
+                extractedContent.Add("=== ZIP FILE CONTENTS ===\n");
+
+                using var archive = ZipFile.OpenRead(filePath);
+                
+                foreach (var entry in archive.Entries)
+                {
+                    // Skip directories
+                    if (string.IsNullOrEmpty(entry.Name)) continue;
+                    
+                    extractedContent.Add($"File: {entry.FullName} ({entry.Length} bytes)");
+                    
+                    var entryExtension = Path.GetExtension(entry.Name).ToLowerInvariant();
+                    
+                    // Only extract text from supported file types within the ZIP
+                    if (entryExtension == ".txt" || entryExtension == ".json" || entryExtension == ".csv")
+                    {
+                        try
+                        {
+                            using var entryStream = entry.Open();
+                            using var reader = new StreamReader(entryStream);
+                            var content = await reader.ReadToEndAsync();
+                            
+                            // Limit content size to prevent huge outputs
+                            if (content.Length > 10000)
+                            {
+                                content = content.Substring(0, 10000) + "\n[... content truncated ...]";
+                            }
+                            
+                            extractedContent.Add($"Content:\n{content}\n");
+                        }
+                        catch (Exception ex)
+                        {
+                            extractedContent.Add($"[Error reading {entry.Name}: {ex.Message}]\n");
+                        }
+                    }
+                    else
+                    {
+                        extractedContent.Add($"[Binary file - content not extracted]\n");
+                    }
+                }
+                
+                extractedContent.Add("=== END ZIP CONTENTS ===");
+                return string.Join("\n", extractedContent);
+            }
+            catch (Exception ex)
+            {
+                return $"[ERROR: Could not extract ZIP contents] {ex.Message}";
             }
         }
 
