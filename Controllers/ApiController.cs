@@ -101,47 +101,71 @@ namespace WorkBot.Controllers
                     return Json(new { error = "No message or files provided" });
                 }
 
+                // Estimate tokens for the new message
+                var messageTokens = _conversationService.EstimateTokens(completeMessage);
+                
+                // Check current token usage
+                var tokenUsage = await _conversationService.GetConversationTokenUsageAsync(conversationId);
+                var projectedTokens = tokenUsage.CurrentTokens + messageTokens + 4000; // Reserve for response
+
+                var trimmedHistory = false;
+                var messagesRemoved = 0;
+                string? warning = null;
+
+                // If approaching limit, trim history
+                if (projectedTokens > tokenUsage.MaxTokens)
+                {
+                    Console.WriteLine($"[CHAT] Token limit approaching. Current: {tokenUsage.CurrentTokens}, Message: {messageTokens}, Projected: {projectedTokens}");
+                    
+                    messagesRemoved = await _conversationService.TrimConversationHistoryAsync(conversationId, 16000);
+                    trimmedHistory = messagesRemoved > 0;
+                    
+                    if (trimmedHistory)
+                    {
+                        warning = $"Conversation history was trimmed ({messagesRemoved} older messages removed) to stay within token limits.";
+                        Console.WriteLine($"[CHAT] Trimmed {messagesRemoved} messages from conversation history");
+                    }
+                }
+
+                // Check if message itself is too large
+                if (messageTokens > 15000) // Leave room for response
+                {
+                    return Json(new { 
+                        error = $"Your message is too long ({messageTokens} tokens). Please reduce it to under 15,000 tokens.",
+                        tokenUsage = await _conversationService.GetConversationTokenUsageAsync(conversationId)
+                    });
+                }
+
                 // Save user message
                 await _conversationService.SaveMessageAsync(conversationId, "user", completeMessage, hasFiles);
 
-                // Get conversation context and generate response
-                var conversationHistory = await _conversationService.GetRecentMessagesAsync(conversationId);
+                // Get conversation context with token limits applied
+                var conversationHistory = await _conversationService.GetMessagesWithinTokenLimitAsync(conversationId);
+                
+                // Generate response
                 var response = await _aiService.GenerateResponseAsync(conversationHistory);
 
                 // Save assistant response
                 await _conversationService.SaveMessageAsync(conversationId, "assistant", response);
                 await _conversationService.UpdateConversationTimestampAsync(conversationId);
 
-                // Return response with model information
-                return Json(new { 
-                    reply = response, 
-                    model = _aiService.GetModelName() 
+                // Get updated token usage
+                var finalTokenUsage = await _conversationService.GetConversationTokenUsageAsync(conversationId);
+
+                // Return comprehensive response
+                return Json(new ChatResponseDto
+                {
+                    Reply = response,
+                    Model = _aiService.GetModelName(),
+                    TokenUsage = finalTokenUsage,
+                    TrimmedHistory = trimmedHistory,
+                    MessagesRemoved = messagesRemoved,
+                    Warning = warning
                 });
             }
             catch (Exception ex)
             {
                 return Json(new { error = $"AI service error: {ex.Message}" });
-            }
-        }
-
-        // Add a new endpoint to get model info separately
-        [HttpGet]
-        public IActionResult GetModelInfo()
-        {
-            try
-            {
-                return Json(new { 
-                    model = _aiService.GetModelName(),
-                    status = "online"
-                });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { 
-                    model = "Unknown",
-                    status = "error",
-                    error = ex.Message
-                });
             }
         }
 
@@ -151,10 +175,15 @@ namespace WorkBot.Controllers
             var conversationId = HttpContext.Session.GetString("ConversationId");
             if (string.IsNullOrEmpty(conversationId))
             {
-                return Json(new { recent = new List<object>(), files = new List<object>() });
+                return Json(new { 
+                    recent = new List<object>(), 
+                    files = new List<object>(),
+                    tokenUsage = new TokenUsageDto { CurrentTokens = 0, MaxTokens = 20000, UsagePercentage = 0 }
+                });
             }
 
             var recent = await _conversationService.GetRecentMessagesAsync(conversationId);
+            var tokenUsage = await _conversationService.GetConversationTokenUsageAsync(conversationId);
             
             var sessionId = HttpContext.Session.GetString("SessionId");
             var files = new List<object>();
@@ -168,7 +197,7 @@ namespace WorkBot.Controllers
                 }).ToList<object>();
             }
 
-            return Json(new { recent, files, conversationId });
+            return Json(new { recent, files, conversationId, tokenUsage });
         }
 
         [HttpGet]
@@ -188,7 +217,6 @@ namespace WorkBot.Controllers
             });
         }
 
-        // Add this method to your existing ApiController
         [HttpPost]
         public async Task<IActionResult> DeleteConversation([FromForm] string conversationId)
         {
@@ -221,6 +249,71 @@ namespace WorkBot.Controllers
             {
                 Console.WriteLine($"[DELETE_CONV_API] Error: {ex.Message}");
                 return Json(new { success = false, error = $"Error deleting conversation: {ex.Message}" });
+            }
+        }
+
+        // Get current token usage for a conversation
+        [HttpGet]
+        public async Task<IActionResult> GetTokenUsage()
+        {
+            var conversationId = HttpContext.Session.GetString("ConversationId");
+            if (string.IsNullOrEmpty(conversationId))
+            {
+                return Json(new TokenUsageDto { CurrentTokens = 0, MaxTokens = 20000, UsagePercentage = 0 });
+            }
+
+            try
+            {
+                var tokenUsage = await _conversationService.GetConversationTokenUsageAsync(conversationId);
+                return Json(tokenUsage);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        // Estimate tokens for input text
+        [HttpPost]
+        public IActionResult EstimateTokens([FromForm] string text)
+        {
+            try
+            {
+                var sessionFiles = new List<SessionFileDto>(); // Could get actual files if needed
+                var completeMessage = BuildCompleteMessage(text, sessionFiles);
+                var tokens = _conversationService.EstimateTokens(completeMessage);
+                
+                return Json(new { 
+                    tokens = tokens, 
+                    text = text,
+                    textLength = text?.Length ?? 0,
+                    isOverLimit = tokens > 15000
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        // Get model info (existing method)
+        [HttpGet]
+        public IActionResult GetModelInfo()
+        {
+            try
+            {
+                return Json(new { 
+                    model = _aiService.GetModelName(),
+                    status = "online"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { 
+                    model = "Unknown",
+                    status = "error",
+                    error = ex.Message
+                });
             }
         }
 

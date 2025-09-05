@@ -289,6 +289,8 @@
             align-items: center;
             justify-content: space-between;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
         .header-left {
@@ -309,8 +311,9 @@
 
         .header-right {
             display: flex;
-            gap: 20px;
+            gap: 15px;
             align-items: center;
+            flex-wrap: wrap;
         }
 
         .toggle-sidebar {
@@ -322,6 +325,100 @@
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s ease;
+        }
+
+        .token-indicator {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            padding: 10px 18px;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 20px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            min-width: 180px;
+        }
+
+        .token-indicator.warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: rgba(245, 158, 11, 0.3);
+            color: var(--warning);
+        }
+
+        .token-indicator.danger {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: var(--error);
+        }
+
+        .token-indicator:hover {
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .token-indicator.warning:hover {
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+        }
+
+        .token-indicator.danger:hover {
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+        }
+
+        .token-icon {
+            font-size: 1.1em;
+            filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.5));
+        }
+
+        .token-indicator.warning .token-icon {
+            filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.5));
+        }
+
+        .token-indicator.danger .token-icon {
+            filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.5));
+        }
+
+        .token-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+        }
+
+        .token-usage {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.9em;
+        }
+
+        .token-percentage {
+            font-size: 0.8em;
+            opacity: 0.8;
+        }
+
+        .token-progress {
+            width: 60px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .token-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success), var(--warning), var(--error));
+            border-radius: 2px;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+        }
+
+        .token-progress-bar.warning {
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+        }
+
+        .token-progress-bar.danger {
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
         }
 
         .model-indicator {
@@ -388,6 +485,70 @@
         @@keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
+        }
+
+        .input-token-counter {
+            position: absolute;
+            bottom: -25px;
+            right: 0;
+            font-size: 0.8em;
+            color: var(--text-muted);
+            background: rgba(0, 0, 0, 0.5);
+            padding: 4px 8px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .input-token-counter.warning {
+            color: var(--warning);
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .input-token-counter.danger {
+            color: var(--error);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .token-warning-banner {
+            background: rgba(245, 158, 11, 0.2);
+            border: 1px solid var(--warning);
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            color: var(--warning);
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(10px);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .token-error-banner {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid var(--error);
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            color: var(--error);
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(10px);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @@keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         #chat {
@@ -806,6 +967,10 @@
                 padding: 20px;
             }
 
+            .header-right {
+                gap: 10px;
+            }
+
             #chat {
                 padding: 20px;
             }
@@ -822,6 +987,24 @@
             .input-area {
                 flex-direction: column;
                 gap: 15px;
+            }
+
+            .token-indicator {
+                padding: 8px 12px;
+                font-size: 0.8em;
+                min-width: 140px;
+            }
+            
+            .token-info {
+                gap: 1px;
+            }
+            
+            .token-usage {
+                font-size: 0.8em;
+            }
+            
+            .token-percentage {
+                font-size: 0.7em;
             }
 
             .model-indicator {
@@ -920,6 +1103,16 @@
                     <h1>🧠 Enhanced WorkBot</h1>
                 </div>
                 <div class="header-right">
+                    <div class="token-indicator" id="token-indicator">
+                        <div class="token-icon">📊</div>
+                        <div class="token-info">
+                            <div class="token-usage" id="token-usage">0 / 20,000</div>
+                            <div class="token-percentage" id="token-percentage">0% used</div>
+                        </div>
+                        <div class="token-progress">
+                            <div class="token-progress-bar" id="token-progress-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
                     <div class="model-indicator" id="model-indicator">
                         <div class="model-icon">🤖</div>
                         <div class="model-info">
@@ -992,6 +1185,9 @@
                             placeholder="Ask me anything or upload files to analyze..."
                             rows="1"
                         ></textarea>
+                        <div class="input-token-counter" id="input-token-counter" style="display: none;">
+                            0 tokens
+                        </div>
                     </div>
                     
                     <button type="submit" class="send-button" id="send-btn">
@@ -1009,12 +1205,18 @@
         let currentConversationId = null;
         let sidebarOpen = false;
         let currentModel = 'Unknown';
+        let currentTokenUsage = { currentTokens: 0, maxTokens: 20000, usagePercentage: 0 };
+        let inputTokenEstimate = 0;
 
         document.addEventListener('DOMContentLoaded', function() {
             loadConversations();
-            loadHistory();
-            loadModelInfo(); // Add this line
-            setupEventListeners();
+            loadHistoryWithTokens();
+            loadModelInfo();
+            loadTokenUsage();
+            setupEventListenersWithTokens();
+            
+            // Refresh token usage every 30 seconds
+            setInterval(loadTokenUsage, 30000);
         });
 
         // Load model information on page load
@@ -1055,7 +1257,155 @@
             }
         }
 
-        function setupEventListeners() {
+        // Load token usage information
+        async function loadTokenUsage() {
+            try {
+                const response = await fetch('/Api/GetTokenUsage');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentTokenUsage = data;
+                    updateTokenDisplay(data);
+                } else {
+                    console.error('Failed to load token usage:', data.error);
+                }
+            } catch (error) {
+                console.error('Failed to load token usage:', error);
+            }
+        }
+
+        // Update the token display in the header
+        function updateTokenDisplay(tokenData) {
+            const tokenIndicator = document.getElementById('token-indicator');
+            const tokenUsage = document.getElementById('token-usage');
+            const tokenPercentage = document.getElementById('token-percentage');
+            const tokenProgressBar = document.getElementById('token-progress-bar');
+            
+            if (tokenUsage) {
+                tokenUsage.textContent = `${tokenData.currentTokens.toLocaleString()} / ${tokenData.maxTokens.toLocaleString()}`;
+            }
+            
+            if (tokenPercentage) {
+                tokenPercentage.textContent = `${tokenData.usagePercentage}% used`;
+            }
+            
+            if (tokenProgressBar) {
+                tokenProgressBar.style.width = `${Math.min(tokenData.usagePercentage, 100)}%`;
+                
+                // Update progress bar color class
+                tokenProgressBar.className = 'token-progress-bar';
+                if (tokenData.isAtLimit) {
+                    tokenProgressBar.classList.add('danger');
+                } else if (tokenData.isNearLimit) {
+                    tokenProgressBar.classList.add('warning');
+                }
+            }
+            
+            if (tokenIndicator) {
+                // Update indicator style based on usage
+                tokenIndicator.className = 'token-indicator';
+                if (tokenData.isAtLimit) {
+                    tokenIndicator.classList.add('danger');
+                } else if (tokenData.isNearLimit) {
+                    tokenIndicator.classList.add('warning');
+                }
+            }
+        }
+
+        // Estimate tokens for input text
+        async function estimateInputTokens(text) {
+            if (!text || text.trim().length === 0) {
+                inputTokenEstimate = 0;
+                updateInputTokenCounter(0);
+                return 0;
+            }
+            
+            try {
+                const formData = new FormData();
+                formData.append('text', text);
+                
+                const response = await fetch('/Api/EstimateTokens', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    inputTokenEstimate = data.tokens;
+                    updateInputTokenCounter(data.tokens, data.isOverLimit);
+                    return data.tokens;
+                }
+            } catch (error) {
+                console.error('Failed to estimate tokens:', error);
+            }
+            
+            // Fallback: rough estimation
+            const roughEstimate = Math.ceil(text.length / 4);
+            inputTokenEstimate = roughEstimate;
+            updateInputTokenCounter(roughEstimate, roughEstimate > 15000);
+            return roughEstimate;
+        }
+
+        // Update input token counter display
+        function updateInputTokenCounter(tokens, isOverLimit = false) {
+            const counter = document.getElementById('input-token-counter');
+            
+            if (!counter) return;
+            
+            if (tokens > 0) {
+                counter.style.display = 'block';
+                counter.textContent = `${tokens.toLocaleString()} tokens`;
+                
+                // Update styling based on token count
+                counter.className = 'input-token-counter';
+                if (isOverLimit) {
+                    counter.classList.add('danger');
+                } else if (tokens > 10000) {
+                    counter.classList.add('warning');
+                }
+            } else {
+                counter.style.display = 'none';
+            }
+        }
+
+        // Show token warning banner
+        function showTokenWarning(message, type = 'warning') {
+            const inputContainer = document.querySelector('.input-container');
+            const existingBanner = inputContainer.querySelector('.token-warning-banner, .token-error-banner');
+            
+            // Remove existing banner
+            if (existingBanner) {
+                existingBanner.remove();
+            }
+            
+            const banner = document.createElement('div');
+            banner.className = type === 'error' ? 'token-error-banner' : 'token-warning-banner';
+            banner.innerHTML = `
+                <span>${type === 'error' ? '⚠️' : '💡'}</span>
+                <span>${message}</span>
+            `;
+            
+            inputContainer.insertBefore(banner, inputContainer.firstChild);
+            
+            // Auto-remove after 10 seconds
+            setTimeout(() => {
+                if (banner.parentNode) {
+                    banner.remove();
+                }
+            }, 10000);
+        }
+
+        // Debounced token estimation for input
+        let tokenEstimationTimeout;
+        function debounceTokenEstimation(text) {
+            clearTimeout(tokenEstimationTimeout);
+            tokenEstimationTimeout = setTimeout(() => {
+                estimateInputTokens(text);
+            }, 300);
+        }
+
+        function setupEventListenersWithTokens() {
             document.getElementById('file-input').addEventListener('change', handleFileSelect);
             
             const uploadArea = document.getElementById('file-upload-area');
@@ -1063,10 +1413,13 @@
             uploadArea.addEventListener('dragleave', handleDragLeave);
             uploadArea.addEventListener('drop', handleDrop);
             
-            document.getElementById('chat-form').addEventListener('submit', handleSubmit);
+            document.getElementById('chat-form').addEventListener('submit', handleSubmitWithTokens);
+            
             document.getElementById('message_input').addEventListener('input', function(e) {
                 autoResize(e.target);
+                debounceTokenEstimation(e.target.value);
             });
+            
             document.getElementById('message_input').addEventListener('keydown', handleKeyDown);
             document.getElementById('overlay').addEventListener('click', closeSidebar);
         }
@@ -1211,7 +1564,6 @@
             textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
         }
 
-        // Updated addMessage function to include model info
         function addMessage(role, text, hasFiles = false, modelName = null) {
             const chat = document.getElementById("chat");
             const emptyState = document.getElementById("empty-state");
@@ -1234,7 +1586,6 @@
                 content += '<div class="file-indicator">📎 Message includes uploaded files</div>';
             }
             
-            // Add model info to assistant messages
             if (role === 'assistant' && modelName) {
                 content += `<div class="model-badge">🤖 ${modelName}</div>`;
             }
@@ -1268,8 +1619,7 @@
             chat.scrollTop = chat.scrollHeight;
         }
 
-        // Updated handleSubmit function to show model info in responses
-        async function handleSubmit(e) {
+        async function handleSubmitWithTokens(e) {
             e.preventDefault();
             
             const formData = new FormData(e.target);
@@ -1278,6 +1628,18 @@
 
             if (!message.trim() && !hasFiles) {
                 showNotification('Please enter a message or upload files', 'error');
+                return;
+            }
+
+            // Check if input is over token limit
+            if (inputTokenEstimate > 15000) {
+                showTokenWarning(`Your message is too long (${inputTokenEstimate.toLocaleString()} tokens). Please reduce it to under 15,000 tokens.`, 'error');
+                return;
+            }
+
+            // Check if conversation is at token limit
+            if (currentTokenUsage.isAtLimit && inputTokenEstimate > 1000) {
+                showTokenWarning('Conversation is at token limit. Starting a new conversation is recommended.', 'error');
                 return;
             }
 
@@ -1295,6 +1657,7 @@
             
             e.target.reset();
             document.getElementById("message_input").style.height = 'auto';
+            updateInputTokenCounter(0);
 
             try {
                 const response = await fetch('/Api/Chat', {
@@ -1311,8 +1674,16 @@
                 if (result.error) {
                     addMessage("assistant", "Warning: " + result.error);
                 } else if (result.reply) {
-                    // Add the response with model information
                     addMessage("assistant", result.reply, false, result.model);
+                    
+                    if (result.tokenUsage) {
+                        currentTokenUsage = result.tokenUsage;
+                        updateTokenDisplay(result.tokenUsage);
+                    }
+                    
+                    if (result.trimmedHistory && result.warning) {
+                        showTokenWarning(result.warning, 'warning');
+                    }
                 } else {
                     addMessage("assistant", "Warning: No response received.");
                 }
@@ -1323,6 +1694,7 @@
                 sendBtn.disabled = false;
                 sendBtn.innerHTML = '<span>Send</span><span>🚀</span>';
                 loadConversations();
+                loadTokenUsage();
             }
         }
 
@@ -1333,7 +1705,7 @@
             }
         }
 
-        async function loadHistory() {
+        async function loadHistoryWithTokens() {
             try {
                 const resp = await fetch('/Api/History');
                 const data = await resp.json();
@@ -1347,6 +1719,11 @@
                 if (data.files && Array.isArray(data.files)) {
                     uploadedFiles = data.files;
                     updateFileDisplay();
+                }
+                
+                if (data.tokenUsage) {
+                    currentTokenUsage = data.tokenUsage;
+                    updateTokenDisplay(data.tokenUsage);
                 }
                 
                 currentConversationId = data.conversationId;

@@ -50,6 +50,7 @@ namespace WorkBot.Models
         public string Role { get; set; } = string.Empty;
         public string Content { get; set; } = string.Empty;
         public bool HasFiles { get; set; }
+        public int Tokens { get; set; }
     }
 
     public class SessionFileDto
@@ -67,5 +68,27 @@ namespace WorkBot.Models
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public int MessageCount { get; set; }
+    }
+
+    // Add new DTOs for token management
+    public class TokenUsageDto
+    {
+        public int CurrentTokens { get; set; }
+        public int MaxTokens { get; set; }
+        public double UsagePercentage { get; set; }
+        public bool IsNearLimit { get; set; }
+        public bool IsAtLimit { get; set; }
+        public int EstimatedInputTokens { get; set; }
+        public int RemainingTokens { get; set; }
+    }
+
+    public class ChatResponseDto
+    {
+        public string Reply { get; set; } = string.Empty;
+        public string Model { get; set; } = string.Empty;
+        public TokenUsageDto TokenUsage { get; set; } = new();
+        public bool TrimmedHistory { get; set; }
+        public int MessagesRemoved { get; set; }
+        public string? Warning { get; set; }
     }
 }
