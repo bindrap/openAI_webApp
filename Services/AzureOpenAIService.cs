@@ -8,11 +8,13 @@ namespace WorkBot.Services
     {
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
+        private readonly string _deploymentName;
 
         public AzureOpenAIService(HttpClient httpClient, IConfiguration configuration)
         {
             _httpClient = httpClient;
             _configuration = configuration;
+            _deploymentName = _configuration["AzureOpenAI:DeploymentName"] ?? "gpt-4";
         }
 
         public async Task<string> GenerateResponseAsync(List<MessageDto> conversationHistory)
@@ -21,10 +23,9 @@ namespace WorkBot.Services
             {
                 var endpoint = _configuration["AzureOpenAI:Endpoint"];
                 var apiKey = _configuration["AzureOpenAI:ApiKey"];
-                var deploymentName = _configuration["AzureOpenAI:DeploymentName"];
                 var apiVersion = _configuration["AzureOpenAI:ApiVersion"];
 
-                var url = $"{endpoint}/openai/deployments/{deploymentName}/chat/completions?api-version={apiVersion}";
+                var url = $"{endpoint}/openai/deployments/{_deploymentName}/chat/completions?api-version={apiVersion}";
 
                 var messages = new List<object>
                 {
@@ -67,6 +68,12 @@ namespace WorkBot.Services
             {
                 return $"I'm experiencing technical difficulties: {ex.Message}";
             }
+        }
+
+        public string GetModelName()
+        {
+            // Return the deployment name which typically corresponds to the model
+            return _deploymentName ?? "Unknown Model";
         }
     }
 }

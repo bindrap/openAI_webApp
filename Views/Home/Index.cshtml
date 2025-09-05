@@ -324,6 +324,47 @@
             transition: all 0.3s ease;
         }
 
+        .model-indicator {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            padding: 10px 18px;
+            background: rgba(124, 58, 237, 0.1);
+            border-radius: 20px;
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .model-indicator:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 15px rgba(124, 58, 237, 0.3);
+        }
+
+        .model-icon {
+            font-size: 1.2em;
+            filter: drop-shadow(0 0 8px rgba(124, 58, 237, 0.5));
+        }
+
+        .model-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .model-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.95em;
+        }
+
+        .model-status {
+            font-size: 0.8em;
+            color: var(--text-muted);
+        }
+
         .status-indicator {
             display: flex;
             align-items: center;
@@ -426,6 +467,21 @@
             display: flex;
             align-items: center;
             gap: 8px;
+        }
+
+        .model-badge {
+            background: rgba(124, 58, 237, 0.2);
+            border: 1px solid var(--accent);
+            border-radius: 10px;
+            padding: 6px 12px;
+            margin-top: 12px;
+            font-size: 0.8em;
+            color: var(--accent);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            backdrop-filter: blur(10px);
+            font-weight: 500;
         }
 
         .thinking-indicator {
@@ -767,6 +823,15 @@
                 flex-direction: column;
                 gap: 15px;
             }
+
+            .model-indicator {
+                padding: 8px 12px;
+                font-size: 0.8em;
+            }
+            
+            .model-info {
+                display: none;
+            }
         }
 
         .overlay {
@@ -855,6 +920,13 @@
                     <h1>🧠 Enhanced WorkBot</h1>
                 </div>
                 <div class="header-right">
+                    <div class="model-indicator" id="model-indicator">
+                        <div class="model-icon">🤖</div>
+                        <div class="model-info">
+                            <div class="model-name" id="model-name">Loading...</div>
+                            <div class="model-status" id="model-status">Checking status...</div>
+                        </div>
+                    </div>
                     <div class="status-indicator">
                         <div class="status-dot"></div>
                         <span>System Online</span>
@@ -936,12 +1008,52 @@
         let uploadedFiles = [];
         let currentConversationId = null;
         let sidebarOpen = false;
+        let currentModel = 'Unknown';
 
         document.addEventListener('DOMContentLoaded', function() {
             loadConversations();
             loadHistory();
+            loadModelInfo(); // Add this line
             setupEventListeners();
         });
+
+        // Load model information on page load
+        async function loadModelInfo() {
+            try {
+                const response = await fetch('/Api/GetModelInfo');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentModel = data.model;
+                    updateModelDisplay(data.model, data.status);
+                } else {
+                    updateModelDisplay('Unknown', 'error');
+                }
+            } catch (error) {
+                console.error('Failed to load model info:', error);
+                updateModelDisplay('Unknown', 'error');
+            }
+        }
+
+        // Update the model display in the header
+        function updateModelDisplay(modelName, status) {
+            const modelNameElement = document.getElementById('model-name');
+            const modelStatusElement = document.getElementById('model-status');
+            
+            if (modelNameElement) {
+                modelNameElement.textContent = modelName;
+            }
+            
+            if (modelStatusElement) {
+                const statusText = status === 'online' ? 'Ready' : 
+                                  status === 'error' ? 'Error' : 'Unknown';
+                modelStatusElement.textContent = statusText;
+                
+                // Update status color
+                modelStatusElement.style.color = status === 'online' ? 'var(--success)' : 
+                                                status === 'error' ? 'var(--error)' : 'var(--text-muted)';
+            }
+        }
 
         function setupEventListeners() {
             document.getElementById('file-input').addEventListener('change', handleFileSelect);
@@ -1099,7 +1211,8 @@
             textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
         }
 
-        function addMessage(role, text, hasFiles = false) {
+        // Updated addMessage function to include model info
+        function addMessage(role, text, hasFiles = false, modelName = null) {
             const chat = document.getElementById("chat");
             const emptyState = document.getElementById("empty-state");
             
@@ -1119,6 +1232,11 @@
             
             if (role === 'user' && hasFiles) {
                 content += '<div class="file-indicator">📎 Message includes uploaded files</div>';
+            }
+            
+            // Add model info to assistant messages
+            if (role === 'assistant' && modelName) {
+                content += `<div class="model-badge">🤖 ${modelName}</div>`;
             }
             
             div.innerHTML = content;
@@ -1150,6 +1268,7 @@
             chat.scrollTop = chat.scrollHeight;
         }
 
+        // Updated handleSubmit function to show model info in responses
         async function handleSubmit(e) {
             e.preventDefault();
             
@@ -1192,7 +1311,8 @@
                 if (result.error) {
                     addMessage("assistant", "Warning: " + result.error);
                 } else if (result.reply) {
-                    addMessage("assistant", result.reply);
+                    // Add the response with model information
+                    addMessage("assistant", result.reply, false, result.model);
                 } else {
                     addMessage("assistant", "Warning: No response received.");
                 }

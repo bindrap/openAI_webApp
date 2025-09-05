@@ -112,11 +112,36 @@ namespace WorkBot.Controllers
                 await _conversationService.SaveMessageAsync(conversationId, "assistant", response);
                 await _conversationService.UpdateConversationTimestampAsync(conversationId);
 
-                return Json(new { reply = response });
+                // Return response with model information
+                return Json(new { 
+                    reply = response, 
+                    model = _aiService.GetModelName() 
+                });
             }
             catch (Exception ex)
             {
                 return Json(new { error = $"AI service error: {ex.Message}" });
+            }
+        }
+
+        // Add a new endpoint to get model info separately
+        [HttpGet]
+        public IActionResult GetModelInfo()
+        {
+            try
+            {
+                return Json(new { 
+                    model = _aiService.GetModelName(),
+                    status = "online"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { 
+                    model = "Unknown",
+                    status = "error",
+                    error = ex.Message
+                });
             }
         }
 
