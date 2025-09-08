@@ -1087,8 +1087,14 @@
             
             <div class="sidebar-footer">
                 <div class="user-info" id="user-info">
-                    <div class="user-avatar">@(User.Identity?.Name?.Substring(0, 1).ToUpper() ?? "U")</div>
-                    <div>@(User.Identity?.Name ?? "User")</div>
+                    @{
+                        var userDisplayName = User.Identity?.Name ?? "User";
+                        var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+                        var displayText = !string.IsNullOrEmpty(userEmail) ? userEmail : userDisplayName;
+                        var avatarLetter = displayText.Substring(0, 1).ToUpper();
+                    }
+                    <div class="user-avatar">@avatarLetter</div>
+                    <div title="@displayText">@displayText</div>
                 </div>
                 <button class="logout-btn" onclick="logout()">
                     🚪 Disconnect

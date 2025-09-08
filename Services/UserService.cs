@@ -51,7 +51,8 @@ namespace WorkBot.Services
         // New method for Identity Server integration
         public async Task<User> EnsureUserExistsAsync(string externalId, string email, string? displayName = null, string? employeeId = null)
         {
-            _logger.LogInformation("[IDENTITY] Ensuring user exists - ExternalId: {ExternalId}, Email: {Email}", externalId, email);
+            _logger.LogInformation("[IDENTITY] Ensuring user exists - ExternalId: {ExternalId}, Email: {Email}, DisplayName: {DisplayName}", 
+                externalId, email, displayName);
             
             // Try to find user by external ID first, then by email
             var user = await _context.Users
@@ -62,12 +63,16 @@ namespace WorkBot.Services
                 // Create new user
                 _logger.LogInformation("[IDENTITY] Creating new user for ExternalId: {ExternalId}", externalId);
                 
+                // Determine the best display name and username
+                var bestDisplayName = DetermineBestDisplayName(displayName, email);
+                var username = DetermineUsername(email, displayName);
+                
                 user = new User
                 {
                     ExternalId = externalId,
-                    Username = email.Split('@')[0], // Use email prefix as username
+                    Username = username,
                     Email = email,
-                    DisplayName = displayName ?? email,
+                    DisplayName = bestDisplayName,
                     EmployeeId = employeeId,
                     PasswordHash = string.Empty, // No password needed for SSO users
                     CreatedAt = DateTime.UtcNow,
@@ -76,6 +81,8 @@ namespace WorkBot.Services
                 };
 
                 _context.Users.Add(user);
+                _logger.LogInformation("[IDENTITY] New user created - Username: {Username}, DisplayName: {DisplayName}", 
+                    username, bestDisplayName);
             }
             else
             {
@@ -84,7 +91,16 @@ namespace WorkBot.Services
                 
                 user.ExternalId = externalId;
                 user.Email = email;
-                user.DisplayName = displayName ?? user.DisplayName ?? email;
+                
+                // Update display name if we have better information
+                var newDisplayName = DetermineBestDisplayName(displayName, email);
+                if (!string.IsNullOrEmpty(newDisplayName) && 
+                    (string.IsNullOrEmpty(user.DisplayName) || user.DisplayName == "User" || user.DisplayName == user.Username))
+                {
+                    user.DisplayName = newDisplayName;
+                    _logger.LogInformation("[IDENTITY] Updated display name to: {DisplayName}", newDisplayName);
+                }
+                
                 user.EmployeeId = employeeId ?? user.EmployeeId;
                 user.AuthenticationMethod = "IdentityServer";
             }
@@ -92,7 +108,8 @@ namespace WorkBot.Services
             user.LastLogin = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("[IDENTITY] User ensured successfully: {UserId}", user.Id);
+            _logger.LogInformation("[IDENTITY] User ensured successfully: {UserId}, DisplayName: {DisplayName}", 
+                user.Id, user.DisplayName);
             return user;
         }
 
@@ -119,7 +136,7 @@ namespace WorkBot.Services
                 {
                     Username = username,
                     Email = email,
-                    DisplayName = username,
+                    DisplayName = username, // Use username as display name for local accounts
                     PasswordHash = hashedPassword,
                     CreatedAt = DateTime.UtcNow,
                     IsActive = true,
@@ -141,14 +158,19 @@ namespace WorkBot.Services
 
         public async Task SignInAsync(HttpContext httpContext, User user)
         {
-            _logger.LogInformation("[SIGNIN] Signing in user: {Username}", user.Username);
+            _logger.LogInformation("[SIGNIN] Signing in user: {Username}, DisplayName: {DisplayName}", 
+                user.Username, user.DisplayName);
+            
+            // Use the best available name for display
+            var displayName = user.DisplayName ?? user.Username;
             
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.DisplayName ?? user.Username),
+                new Claim(ClaimTypes.Name, displayName), // This is what shows up in User.Identity.Name
                 new Claim(ClaimTypes.Email, user.Email),
-                new Claim("username", user.Username)
+                new Claim("username", user.Username),
+                new Claim("display_name", displayName)
             };
 
             if (!string.IsNullOrEmpty(user.EmployeeId))
@@ -160,7 +182,7 @@ namespace WorkBot.Services
             var principal = new ClaimsPrincipal(identity);
 
             await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
-            _logger.LogInformation("[SIGNIN] Successfully signed in: {Username}", user.Username);
+            _logger.LogInformation("[SIGNIN] Successfully signed in: {Username} as {DisplayName}", user.Username, displayName);
         }
 
         public async Task SignOutAsync(HttpContext httpContext)
@@ -182,6 +204,34 @@ namespace WorkBot.Services
         {
             return await _context.Users
                 .FirstOrDefaultAsync(u => u.ExternalId == externalId && u.IsActive);
+        }
+
+        private string DetermineBestDisplayName(string? displayName, string email)
+        {
+            // Priority order for display name:
+            // 1. Use provided display name if it exists and isn't generic
+            // 2. Use email address
+            
+            if (!string.IsNullOrEmpty(displayName) && 
+                displayName != "User" && 
+                displayName.Length > 2)
+            {
+                return displayName;
+            }
+            
+            // Fall back to email address (it's better than "User")
+            return email;
+        }
+
+        private string DetermineUsername(string email, string? displayName)
+        {
+            // For username, prefer the email prefix, but make it unique if needed
+            var baseUsername = email.Split('@')[0];
+            
+            // Clean up the username (remove dots, etc.)
+            baseUsername = baseUsername.Replace(".", "").Replace("-", "").Replace("_", "");
+            
+            return baseUsername;
         }
 
         private string HashPassword(string password)

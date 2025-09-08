@@ -12,15 +12,21 @@ namespace WorkBot.Controllers
         private readonly IConversationService _conversationService;
         private readonly IFileProcessingService _fileService;
         private readonly IAzureOpenAIService _aiService;
+        private readonly IUserService _userService;
+        private readonly ILogger<ApiController> _logger;
 
         public ApiController(
             IConversationService conversationService,
             IFileProcessingService fileService,
-            IAzureOpenAIService aiService)
+            IAzureOpenAIService aiService,
+            IUserService userService,
+            ILogger<ApiController> logger)
         {
             _conversationService = conversationService;
             _fileService = fileService;
             _aiService = aiService;
+            _userService = userService;
+            _logger = logger;
         }
 
         [HttpPost]
@@ -76,7 +82,12 @@ namespace WorkBot.Controllers
         [HttpPost]
         public async Task<IActionResult> Chat([FromForm] string message)
         {
-            var userId = GetCurrentUserId();
+            var userId = await GetCurrentUserIdAsync();
+            if (userId == null)
+            {
+                return Json(new { error = "User not found" });
+            }
+
             var conversationId = HttpContext.Session.GetString("ConversationId");
             var sessionId = HttpContext.Session.GetString("SessionId") ?? Guid.NewGuid().ToString();
 
@@ -85,7 +96,7 @@ namespace WorkBot.Controllers
                 // Ensure conversation exists
                 if (string.IsNullOrEmpty(conversationId))
                 {
-                    conversationId = await _conversationService.CreateConversationAsync(userId);
+                    conversationId = await _conversationService.CreateConversationAsync(userId.Value);
                     HttpContext.Session.SetString("ConversationId", conversationId);
                 }
 
@@ -101,67 +112,18 @@ namespace WorkBot.Controllers
                     return Json(new { error = "No message or files provided" });
                 }
 
-                // Estimate tokens for the new message
-                var messageTokens = _conversationService.EstimateTokens(completeMessage);
-                
-                // Check current token usage
-                var tokenUsage = await _conversationService.GetConversationTokenUsageAsync(conversationId);
-                var projectedTokens = tokenUsage.CurrentTokens + messageTokens + 4000; // Reserve for response
-
-                var trimmedHistory = false;
-                var messagesRemoved = 0;
-                string? warning = null;
-
-                // If approaching limit, trim history
-                if (projectedTokens > tokenUsage.MaxTokens)
-                {
-                    Console.WriteLine($"[CHAT] Token limit approaching. Current: {tokenUsage.CurrentTokens}, Message: {messageTokens}, Projected: {projectedTokens}");
-                    
-                    messagesRemoved = await _conversationService.TrimConversationHistoryAsync(conversationId, 16000);
-                    trimmedHistory = messagesRemoved > 0;
-                    
-                    if (trimmedHistory)
-                    {
-                        warning = $"Conversation history was trimmed ({messagesRemoved} older messages removed) to stay within token limits.";
-                        Console.WriteLine($"[CHAT] Trimmed {messagesRemoved} messages from conversation history");
-                    }
-                }
-
-                // Check if message itself is too large
-                if (messageTokens > 15000) // Leave room for response
-                {
-                    return Json(new { 
-                        error = $"Your message is too long ({messageTokens} tokens). Please reduce it to under 15,000 tokens.",
-                        tokenUsage = await _conversationService.GetConversationTokenUsageAsync(conversationId)
-                    });
-                }
-
                 // Save user message
                 await _conversationService.SaveMessageAsync(conversationId, "user", completeMessage, hasFiles);
 
-                // Get conversation context with token limits applied
-                var conversationHistory = await _conversationService.GetMessagesWithinTokenLimitAsync(conversationId);
-                
-                // Generate response
+                // Get conversation context and generate response
+                var conversationHistory = await _conversationService.GetRecentMessagesAsync(conversationId);
                 var response = await _aiService.GenerateResponseAsync(conversationHistory);
 
                 // Save assistant response
                 await _conversationService.SaveMessageAsync(conversationId, "assistant", response);
                 await _conversationService.UpdateConversationTimestampAsync(conversationId);
 
-                // Get updated token usage
-                var finalTokenUsage = await _conversationService.GetConversationTokenUsageAsync(conversationId);
-
-                // Return comprehensive response
-                return Json(new ChatResponseDto
-                {
-                    Reply = response,
-                    Model = _aiService.GetModelName(),
-                    TokenUsage = finalTokenUsage,
-                    TrimmedHistory = trimmedHistory,
-                    MessagesRemoved = messagesRemoved,
-                    Warning = warning
-                });
+                return Json(new { reply = response });
             }
             catch (Exception ex)
             {
@@ -175,15 +137,10 @@ namespace WorkBot.Controllers
             var conversationId = HttpContext.Session.GetString("ConversationId");
             if (string.IsNullOrEmpty(conversationId))
             {
-                return Json(new { 
-                    recent = new List<object>(), 
-                    files = new List<object>(),
-                    tokenUsage = new TokenUsageDto { CurrentTokens = 0, MaxTokens = 20000, UsagePercentage = 0 }
-                });
+                return Json(new { recent = new List<object>(), files = new List<object>() });
             }
 
             var recent = await _conversationService.GetRecentMessagesAsync(conversationId);
-            var tokenUsage = await _conversationService.GetConversationTokenUsageAsync(conversationId);
             
             var sessionId = HttpContext.Session.GetString("SessionId");
             var files = new List<object>();
@@ -197,14 +154,19 @@ namespace WorkBot.Controllers
                 }).ToList<object>();
             }
 
-            return Json(new { recent, files, conversationId, tokenUsage });
+            return Json(new { recent, files, conversationId });
         }
 
         [HttpGet]
         public async Task<IActionResult> Conversations()
         {
-            var userId = GetCurrentUserId();
-            var conversations = await _conversationService.GetUserConversationsAsync(userId);
+            var userId = await GetCurrentUserIdAsync();
+            if (userId == null)
+            {
+                return Json(new { error = "User not found" });
+            }
+
+            var conversations = await _conversationService.GetUserConversationsAsync(userId.Value);
             
             return Json(new { 
                 conversations = conversations.Select(c => new {
@@ -220,13 +182,18 @@ namespace WorkBot.Controllers
         [HttpPost]
         public async Task<IActionResult> DeleteConversation([FromForm] string conversationId)
         {
-            var userId = GetCurrentUserId();
+            var userId = await GetCurrentUserIdAsync();
+            if (userId == null)
+            {
+                return Json(new { success = false, error = "User not found" });
+            }
             
             try
             {
-                Console.WriteLine($"[DELETE_CONV_API] Delete request for conversation {conversationId} by user {userId}");
+                _logger.LogInformation("[DELETE_CONV_API] Delete request for conversation {ConversationId} by user {UserId}", 
+                    conversationId, userId);
                 
-                var success = await _conversationService.DeleteConversationAsync(conversationId, userId);
+                var success = await _conversationService.DeleteConversationAsync(conversationId, userId.Value);
                 
                 if (success)
                 {
@@ -247,73 +214,8 @@ namespace WorkBot.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[DELETE_CONV_API] Error: {ex.Message}");
+                _logger.LogError(ex, "[DELETE_CONV_API] Error deleting conversation");
                 return Json(new { success = false, error = $"Error deleting conversation: {ex.Message}" });
-            }
-        }
-
-        // Get current token usage for a conversation
-        [HttpGet]
-        public async Task<IActionResult> GetTokenUsage()
-        {
-            var conversationId = HttpContext.Session.GetString("ConversationId");
-            if (string.IsNullOrEmpty(conversationId))
-            {
-                return Json(new TokenUsageDto { CurrentTokens = 0, MaxTokens = 20000, UsagePercentage = 0 });
-            }
-
-            try
-            {
-                var tokenUsage = await _conversationService.GetConversationTokenUsageAsync(conversationId);
-                return Json(tokenUsage);
-            }
-            catch (Exception ex)
-            {
-                return Json(new { error = ex.Message });
-            }
-        }
-
-        // Estimate tokens for input text
-        [HttpPost]
-        public IActionResult EstimateTokens([FromForm] string text)
-        {
-            try
-            {
-                var sessionFiles = new List<SessionFileDto>(); // Could get actual files if needed
-                var completeMessage = BuildCompleteMessage(text, sessionFiles);
-                var tokens = _conversationService.EstimateTokens(completeMessage);
-                
-                return Json(new { 
-                    tokens = tokens, 
-                    text = text,
-                    textLength = text?.Length ?? 0,
-                    isOverLimit = tokens > 15000
-                });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { error = ex.Message });
-            }
-        }
-
-        // Get model info (existing method)
-        [HttpGet]
-        public IActionResult GetModelInfo()
-        {
-            try
-            {
-                return Json(new { 
-                    model = _aiService.GetModelName(),
-                    status = "online"
-                });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { 
-                    model = "Unknown",
-                    status = "error",
-                    error = ex.Message
-                });
             }
         }
 
@@ -341,9 +243,45 @@ namespace WorkBot.Controllers
             return completeMessage;
         }
 
-        private int GetCurrentUserId()
+        private async Task<int?> GetCurrentUserIdAsync()
         {
-            return int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            try
+            {
+                var nameIdentifierClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(nameIdentifierClaim))
+                {
+                    _logger.LogWarning("[GET_USER_ID] No NameIdentifier claim found");
+                    return null;
+                }
+
+                _logger.LogInformation("[GET_USER_ID] NameIdentifier claim: {NameIdentifier}", nameIdentifierClaim);
+
+                // Try to parse as integer first (for local users)
+                if (int.TryParse(nameIdentifierClaim, out int localUserId))
+                {
+                    _logger.LogInformation("[GET_USER_ID] Found local user ID: {UserId}", localUserId);
+                    return localUserId;
+                }
+
+                // If it's not an integer, it's probably a GUID from Identity Server
+                // We need to look up the user by their external ID
+                _logger.LogInformation("[GET_USER_ID] External ID detected, looking up user: {ExternalId}", nameIdentifierClaim);
+                
+                var user = await _userService.GetUserByExternalIdAsync(nameIdentifierClaim);
+                if (user != null)
+                {
+                    _logger.LogInformation("[GET_USER_ID] Found user by external ID: {UserId}", user.Id);
+                    return user.Id;
+                }
+
+                _logger.LogWarning("[GET_USER_ID] User not found for external ID: {ExternalId}", nameIdentifierClaim);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[GET_USER_ID] Error getting current user ID");
+                return null;
+            }
         }
     }
 }

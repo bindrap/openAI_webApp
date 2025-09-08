@@ -92,16 +92,22 @@ if (identityServerConfigured)
                 {
                     // Extract user information from claims
                     var email = principal.FindFirst(ClaimTypes.Email)?.Value;
-                    var name = principal.FindFirst(ClaimTypes.Name)?.Value ?? principal.FindFirst("name")?.Value;
+                    var name = principal.FindFirst(ClaimTypes.Name)?.Value;
+                    var givenName = principal.FindFirst(ClaimTypes.GivenName)?.Value;
+                    var familyName = principal.FindFirst(ClaimTypes.Surname)?.Value;
+                    var preferredUsername = principal.FindFirst("preferred_username")?.Value;
                     var nameIdentifier = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                     
-                    logger.LogInformation("[TOKEN_VALIDATED] Claims - Email: {Email}, Name: {Name}, Sub: {Sub}", 
-                        email, name, nameIdentifier);
+                    // Build the best display name from available claims
+                    var displayName = DetermineBestDisplayName(name, givenName, familyName, preferredUsername, email);
+                    
+                    logger.LogInformation("[TOKEN_VALIDATED] Claims - Email: {Email}, Name: {Name}, DisplayName: {DisplayName}, Sub: {Sub}", 
+                        email, name, displayName, nameIdentifier);
                     
                     if (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(nameIdentifier))
                     {
                         // Create or update user in local database
-                        await userService.EnsureUserExistsAsync(nameIdentifier, email, name, null);
+                        await userService.EnsureUserExistsAsync(nameIdentifier, email, displayName, null);
                         logger.LogInformation("[TOKEN_VALIDATED] User ensured in database");
                     }
                     else
@@ -109,6 +115,30 @@ if (identityServerConfigured)
                         logger.LogWarning("[TOKEN_VALIDATED] Missing required claims - Email: {Email}, Sub: {Sub}", 
                             email, nameIdentifier);
                     }
+                }
+                
+                // Helper method to determine best display name
+                static string DetermineBestDisplayName(string? name, string? givenName, string? familyName, string? preferredUsername, string? email)
+                {
+                    // Priority order:
+                    // 1. Full name from 'name' claim
+                    // 2. Constructed name from given_name + family_name
+                    // 3. Preferred username
+                    // 4. Email address
+                    
+                    if (!string.IsNullOrEmpty(name) && name != "User")
+                        return name;
+                    
+                    if (!string.IsNullOrEmpty(givenName) && !string.IsNullOrEmpty(familyName))
+                        return $"{givenName} {familyName}";
+                    
+                    if (!string.IsNullOrEmpty(givenName))
+                        return givenName;
+                    
+                    if (!string.IsNullOrEmpty(preferredUsername))
+                        return preferredUsername;
+                    
+                    return email ?? "User";
                 }
             },
             OnAuthenticationFailed = context =>
