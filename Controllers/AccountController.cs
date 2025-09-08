@@ -1,4 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Authorization;
 using WorkBot.Services;
 using WorkBot.Models;
 using WorkBot.Data;
@@ -9,47 +12,103 @@ namespace WorkBot.Controllers
     {
         private readonly IUserService _userService;
         private readonly WorkBotDbContext _context;
+        private readonly ILogger<AccountController> _logger;
+        private readonly IConfiguration _configuration;
 
-        public AccountController(IUserService userService, WorkBotDbContext context)
+        public AccountController(
+            IUserService userService, 
+            WorkBotDbContext context, 
+            ILogger<AccountController> logger,
+            IConfiguration configuration)
         {
             _userService = userService;
             _context = context;
+            _logger = logger;
+            _configuration = configuration;
         }
 
         [HttpGet]
-        public IActionResult Login()
+        public IActionResult Login(string? returnUrl = null)
         {
-            Console.WriteLine("[LOGIN_GET] Login page accessed");
+            _logger.LogInformation("[LOGIN_GET] Login page accessed");
 
             if (User.Identity?.IsAuthenticated == true)
             {
-                Console.WriteLine("[LOGIN_GET] User already authenticated, redirecting to home");
+                _logger.LogInformation("[LOGIN_GET] User already authenticated, redirecting to home");
                 return RedirectToAction("Index", "Home");
             }
 
+            ViewData["ReturnUrl"] = returnUrl;
+            
+            // Check if Identity Server is configured
+            var identityServerEnabled = !string.IsNullOrEmpty(_configuration["CityWindsor:ClientId"]);
+            ViewData["IdentityServerEnabled"] = identityServerEnabled;
+            
             return View();
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Login(LoginViewModel model)
+        // Identity Server login
+        [HttpGet]
+        public IActionResult LoginWithIdentityServer(string? returnUrl = null)
         {
-            Console.WriteLine($"[LOGIN_POST] Login attempt for user: {model?.Username}");
-            Console.WriteLine($"[LOGIN_POST] ModelState.IsValid: {ModelState.IsValid}");
+            _logger.LogInformation("[IDENTITY_LOGIN] Starting Identity Server authentication");
+            
+            var redirectUrl = Url.Action("LoginCallback", "Account", new { returnUrl });
+            var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
+            
+            return Challenge(properties, OpenIdConnectDefaults.AuthenticationScheme);
+        }
+
+        // Identity Server callback
+        [HttpGet]
+        public async Task<IActionResult> LoginCallback(string? returnUrl = null)
+        {
+            _logger.LogInformation("[IDENTITY_CALLBACK] Processing Identity Server callback");
+            
+            try
+            {
+                var result = await HttpContext.AuthenticateAsync(OpenIdConnectDefaults.AuthenticationScheme);
+                
+                if (!result.Succeeded)
+                {
+                    _logger.LogError("[IDENTITY_CALLBACK] Authentication failed");
+                    TempData["Error"] = "Authentication failed. Please try again.";
+                    return RedirectToAction("Login");
+                }
+
+                _logger.LogInformation("[IDENTITY_CALLBACK] Authentication successful, redirecting");
+                
+                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                {
+                    return Redirect(returnUrl);
+                }
+                
+                return RedirectToAction("Index", "Home");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[IDENTITY_CALLBACK] Exception during callback processing");
+                TempData["Error"] = "An error occurred during authentication.";
+                return RedirectToAction("Login");
+            }
+        }
+
+        // Legacy local login (keep for fallback)
+        [HttpPost]
+        public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
+        {
+            _logger.LogInformation("[LOGIN_POST] Legacy login attempt for user: {Username}", model?.Username);
 
             if (model == null)
             {
-                Console.WriteLine("[LOGIN_POST] Model is null!");
+                _logger.LogWarning("[LOGIN_POST] Model is null");
                 ModelState.AddModelError("", "Invalid request");
                 return View();
             }
 
             if (!ModelState.IsValid)
             {
-                Console.WriteLine("[LOGIN_POST] ModelState invalid:");
-                foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
-                {
-                    Console.WriteLine($"[LOGIN_POST] Validation error: {error.ErrorMessage}");
-                }
+                _logger.LogWarning("[LOGIN_POST] ModelState invalid");
                 return View(model);
             }
 
@@ -58,19 +117,24 @@ namespace WorkBot.Controllers
                 var user = await _userService.AuthenticateAsync(model.Username, model.Password);
                 if (user == null)
                 {
-                    Console.WriteLine($"[LOGIN_POST] Authentication failed for user: {model.Username}");
+                    _logger.LogWarning("[LOGIN_POST] Authentication failed for user: {Username}", model.Username);
                     ModelState.AddModelError("", "Invalid username or password");
                     return View(model);
                 }
 
-                Console.WriteLine($"[LOGIN_POST] Authentication successful for user: {model.Username}");
+                _logger.LogInformation("[LOGIN_POST] Authentication successful for user: {Username}", model.Username);
                 await _userService.SignInAsync(HttpContext, user);
+                
+                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                {
+                    return Redirect(returnUrl);
+                }
+                
                 return RedirectToAction("Index", "Home");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[LOGIN_POST] Exception during login: {ex.Message}");
-                Console.WriteLine($"[LOGIN_POST] Stack trace: {ex.StackTrace}");
+                _logger.LogError(ex, "[LOGIN_POST] Exception during login");
                 ModelState.AddModelError("", "An error occurred during login: " + ex.Message);
                 return View(model);
             }
@@ -79,12 +143,20 @@ namespace WorkBot.Controllers
         [HttpGet]
         public IActionResult Register()
         {
-            Console.WriteLine("[REGISTER_GET] Register page accessed");
+            _logger.LogInformation("[REGISTER_GET] Register page accessed");
 
             if (User.Identity?.IsAuthenticated == true)
             {
-                Console.WriteLine("[REGISTER_GET] User already authenticated, redirecting to home");
+                _logger.LogInformation("[REGISTER_GET] User already authenticated, redirecting to home");
                 return RedirectToAction("Index", "Home");
+            }
+
+            // Check if local registration should be allowed
+            var allowLocalRegistration = _configuration.GetValue<bool>("Authentication:AllowLocalRegistration", true);
+            if (!allowLocalRegistration)
+            {
+                TempData["Info"] = "Please use the City of Windsor sign-in to access WorkBot.";
+                return RedirectToAction("Login");
             }
 
             return View();
@@ -93,89 +165,97 @@ namespace WorkBot.Controllers
         [HttpPost]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
-            Console.WriteLine($"[REGISTER_POST] Register POST called for user: {model?.Username}");
-            Console.WriteLine($"[REGISTER_POST] ModelState.IsValid: {ModelState.IsValid}");
+            _logger.LogInformation("[REGISTER_POST] Register POST called for user: {Username}", model?.Username);
 
-            if (model == null)
+            // Check if local registration is allowed
+            var allowLocalRegistration = _configuration.GetValue<bool>("Authentication:AllowLocalRegistration", true);
+            if (!allowLocalRegistration)
             {
-                Console.WriteLine("[REGISTER_POST] Model is null!");
-                ModelState.AddModelError("", "Invalid request");
-                return View();
+                TempData["Error"] = "Local registration is disabled. Please use City of Windsor sign-in.";
+                return RedirectToAction("Login");
             }
 
-            // Log all model properties
-            Console.WriteLine($"[REGISTER_POST] Model data - Username: '{model.Username}', Email: '{model.Email}', Password length: {model.Password?.Length ?? 0}, Confirm length: {model.ConfirmPassword?.Length ?? 0}");
-
-            if (!ModelState.IsValid)
+            if (model == null || !ModelState.IsValid)
             {
-                Console.WriteLine("[REGISTER_POST] ModelState invalid:");
-                foreach (var kvp in ModelState)
-                {
-                    foreach (var error in kvp.Value.Errors)
-                    {
-                        Console.WriteLine($"[REGISTER_POST] Validation error for {kvp.Key}: {error.ErrorMessage}");
-                    }
-                }
                 return View(model);
             }
-
-            Console.WriteLine($"[REGISTER_POST] Attempting to create user: {model.Username}, {model.Email}");
 
             try
             {
                 var result = await _userService.CreateUserAsync(model.Username, model.Email, model.Password);
-                Console.WriteLine($"[REGISTER_POST] CreateUserAsync result - Success: {result.Success}, Error: {result.ErrorMessage}");
 
                 if (!result.Success)
                 {
-                    Console.WriteLine($"[REGISTER_POST] Registration failed: {result.ErrorMessage}");
+                    _logger.LogWarning("[REGISTER_POST] Registration failed: {Error}", result.ErrorMessage);
                     ModelState.AddModelError("", result.ErrorMessage ?? "Registration failed");
                     return View(model);
                 }
 
-                Console.WriteLine($"[REGISTER_POST] User created successfully, redirecting to login");
+                _logger.LogInformation("[REGISTER_POST] User created successfully, redirecting to login");
                 TempData["Success"] = "Registration successful! Please log in.";
                 return RedirectToAction("Login");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[REGISTER_POST] Exception: {ex.Message}");
-                Console.WriteLine($"[REGISTER_POST] Stack trace: {ex.StackTrace}");
+                _logger.LogError(ex, "[REGISTER_POST] Exception during registration");
                 ModelState.AddModelError("", "An error occurred during registration: " + ex.Message);
                 return View(model);
             }
         }
 
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> Logout()
         {
             try
             {
                 var username = User.Identity?.Name;
-                Console.WriteLine($"[LOGOUT] Logout for user: {username}");
+                _logger.LogInformation("[LOGOUT] Logout for user: {Username}", username);
 
                 await _userService.SignOutAsync(HttpContext);
                 return RedirectToAction("Login");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[LOGOUT] Error during logout: {ex.Message}");
+                _logger.LogError(ex, "[LOGOUT] Error during logout");
                 return RedirectToAction("Login");
             }
         }
 
-        // Debug endpoint - remove after fixing
+        [HttpGet]
+        public IActionResult Error()
+        {
+            ViewData["ErrorMessage"] = TempData["Error"] ?? "An authentication error occurred.";
+            return View();
+        }
+
+        [HttpGet]
+        public IActionResult AccessDenied()
+        {
+            return View();
+        }
+
+        // Debug endpoints (remove in production)
         [HttpGet]
         public IActionResult TestDb()
         {
             try
             {
-                Console.WriteLine("[TEST_DB] Testing database connection...");
+                _logger.LogInformation("[TEST_DB] Testing database connection...");
 
                 var userCount = _context.Users.Count();
-                var users = _context.Users.Take(5).Select(u => new { u.Id, u.Username, u.Email, u.CreatedAt }).ToList();
+                var users = _context.Users.Take(5).Select(u => new { 
+                    u.Id, 
+                    u.Username, 
+                    u.Email, 
+                    u.DisplayName,
+                    u.ExternalId,
+                    u.EmployeeId,
+                    u.AuthenticationMethod,
+                    u.CreatedAt 
+                }).ToList();
 
-                Console.WriteLine($"[TEST_DB] Database test successful. User count: {userCount}");
+                _logger.LogInformation("[TEST_DB] Database test successful. User count: {UserCount}", userCount);
 
                 return Json(new
                 {
@@ -187,90 +267,8 @@ namespace WorkBot.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[TEST_DB] Database test failed: {ex.Message}");
-                Console.WriteLine($"[TEST_DB] Stack trace: {ex.StackTrace}");
-
+                _logger.LogError(ex, "[TEST_DB] Database test failed");
                 return Json(new
-                {
-                    success = false,
-                    error = ex.Message,
-                    stackTrace = ex.StackTrace
-                });
-            }
-        }
-
-        // Debug registration endpoint - remove after fixing
-        [HttpGet]
-        public async Task<IActionResult> TestRegister()
-        {
-            try
-            {
-                Console.WriteLine("[TEST_REG] Testing registration process...");
-
-                var testUsername = "testuser_" + DateTime.Now.Ticks;
-                var testEmail = $"test_{DateTime.Now.Ticks}@test.com";
-                var testPassword = "password123";
-
-                var result = await _userService.CreateUserAsync(testUsername, testEmail, testPassword);
-
-                return Json(new
-                {
-                    success = result.Success,
-                    userId = result.UserId,
-                    error = result.ErrorMessage,
-                    testData = new { username = testUsername, email = testEmail, password = "***" }
-                });
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[TEST_REG] Test registration failed: {ex.Message}");
-                return Json(new
-                {
-                    success = false,
-                    error = ex.Message,
-                    stackTrace = ex.StackTrace
-                });
-            }
-        }
-        
-        // Add this debug action to your AccountController to test if ViewModels are working
-
-        [HttpGet]
-        public IActionResult TestViewModels()
-        {
-            try
-            {
-                // Test creating ViewModels
-                var loginModel = new LoginViewModel 
-                { 
-                    Username = "test", 
-                    Password = "test" 
-                };
-                
-                var registerModel = new RegisterViewModel 
-                { 
-                    Username = "test", 
-                    Email = "test@test.com", 
-                    Password = "test123", 
-                    ConfirmPassword = "test123" 
-                };
-
-                return Json(new 
-                {
-                    success = true,
-                    loginModel = new { loginModel.Username, PasswordSet = !string.IsNullOrEmpty(loginModel.Password) },
-                    registerModel = new { 
-                        registerModel.Username, 
-                        registerModel.Email, 
-                        PasswordSet = !string.IsNullOrEmpty(registerModel.Password),
-                        ConfirmPasswordSet = !string.IsNullOrEmpty(registerModel.ConfirmPassword)
-                    },
-                    message = "ViewModels working correctly"
-                });
-            }
-            catch (Exception ex)
-            {
-                return Json(new 
                 {
                     success = false,
                     error = ex.Message,

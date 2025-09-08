@@ -24,6 +24,16 @@ namespace WorkBot.Data
                 .HasIndex(u => u.Email)
                 .IsUnique();
 
+            // Add indexes for new Identity Server fields
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.ExternalId);
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.EmployeeId);
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.AuthenticationMethod);
+
             modelBuilder.Entity<Conversation>()
                 .HasOne(c => c.User)
                 .WithMany(u => u.Conversations)
@@ -54,8 +64,24 @@ namespace WorkBot.Data
         [MaxLength(100)]
         public string Email { get; set; } = string.Empty;
 
-        [Required]
+        // For display purposes (full name from Identity Server)
+        [MaxLength(255)]
+        public string? DisplayName { get; set; }
+
+        // External ID from Identity Server (sub claim)
+        [MaxLength(255)]
+        public string? ExternalId { get; set; }
+
+        // Employee ID from City of Windsor
+        [MaxLength(50)]
+        public string? EmployeeId { get; set; }
+
+        // Password hash (empty for SSO users)
         public string PasswordHash { get; set; } = string.Empty;
+
+        // Track authentication method
+        [MaxLength(50)]
+        public string AuthenticationMethod { get; set; } = "Local"; // "Local" or "IdentityServer"
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? LastLogin { get; set; }

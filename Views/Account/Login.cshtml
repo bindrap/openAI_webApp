@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "Login";
     Layout = null;
+    var identityServerEnabled = ViewData["IdentityServerEnabled"] as bool? ?? false;
 }
 
 <!doctype html>
@@ -76,36 +77,6 @@
             100% { transform: translate(50px, 50px); }
         }
 
-        .bg-particles {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            z-index: 2;
-        }
-
-        .particle {
-            position: absolute;
-            background: var(--primary);
-            border-radius: 50%;
-            animation: float 15s ease-in-out infinite;
-            box-shadow: var(--neon-glow);
-        }
-
-        .particle:nth-child(1) { width: 4px; height: 4px; left: 10%; animation-delay: 0s; }
-        .particle:nth-child(2) { width: 3px; height: 3px; left: 30%; animation-delay: 5s; }
-        .particle:nth-child(3) { width: 5px; height: 5px; left: 60%; animation-delay: 10s; }
-        .particle:nth-child(4) { width: 2px; height: 2px; left: 80%; animation-delay: 2s; }
-        .particle:nth-child(5) { width: 3px; height: 3px; left: 45%; animation-delay: 8s; }
-
-        @@keyframes float {
-            0%, 100% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
-            10%, 90% { opacity: 1; }
-            50% { transform: translateY(-20px) rotate(180deg); }
-        }
-
         .windsor-logo {
             position: fixed;
             top: 20px;
@@ -136,7 +107,7 @@
             border-radius: 20px;
             padding: 50px;
             width: 100%;
-            max-width: 450px;
+            max-width: 500px;
             position: relative;
             z-index: 100;
             box-shadow: 
@@ -180,8 +151,85 @@
             text-transform: uppercase;
         }
 
-        .form-group {
+        .auth-options {
             margin-bottom: 30px;
+        }
+
+        .sso-button {
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-bottom: 25px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .sso-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .sso-button:hover::before {
+            left: 100%;
+        }
+
+        .sso-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(30, 64, 175, 0.4);
+        }
+
+        .divider {
+            text-align: center;
+            margin: 30px 0;
+            position: relative;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--border);
+            z-index: 1;
+        }
+
+        .divider span {
+            background: var(--glass-bg);
+            padding: 0 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .legacy-form {
+            opacity: 0.8;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
             position: relative;
         }
 
@@ -311,6 +359,12 @@
             border-left-color: var(--success);
         }
 
+        .flash-message.info {
+            background: rgba(59, 130, 246, 0.2);
+            color: #93c5fd;
+            border-left-color: #3b82f6;
+        }
+
         @@media (max-width: 480px) {
             .login-container {
                 padding: 30px 25px;
@@ -337,20 +391,12 @@
 
         @@keyframes scan {
             0% { transform: translateY(0); opacity: 1; }
-            100% { transform: translateY(400px); opacity: 0; }
+            100% { transform: translateY(450px); opacity: 0; }
         }
     </style>
 </head>
 <body>
     <div class="bg-grid"></div>
-    <div class="bg-particles">
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-    </div>
-
     <div class="windsor-logo"></div>
     <div class="coat-of-arms"></div>
 
@@ -369,6 +415,20 @@
             </div>
         }
 
+        @if (TempData["Error"] != null)
+        {
+            <div class="flash-messages">
+                <div class="flash-message error">@TempData["Error"]</div>
+            </div>
+        }
+
+        @if (TempData["Info"] != null)
+        {
+            <div class="flash-messages">
+                <div class="flash-message info">@TempData["Info"]</div>
+            </div>
+        }
+
         @if (!ViewData.ModelState.IsValid)
         {
             <div class="flash-messages">
@@ -379,27 +439,44 @@
             </div>
         }
 
-        <form method="POST" action="/Account/Login">
-            @Html.AntiForgeryToken()
-            
-            <div class="form-group">
-                <label for="Username">Username</label>
-                <input type="text" id="Username" name="Username" value="@(Model?.Username ?? "")" placeholder="Enter your username" required>
+        <div class="auth-options">
+            @if (identityServerEnabled)
+            {
+                <a href="@Url.Action("LoginWithIdentityServer", "Account", new { returnUrl = ViewData["ReturnUrl"] })" class="sso-button">
+                    <span>🏛️</span>
+                    <span>Sign in with City of Windsor</span>
+                </a>
+
+                <div class="divider">
+                    <span>or use legacy login</span>
+                </div>
+            }
+
+            <div class="legacy-form">
+                <form method="POST" action="/Account/Login">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+                    
+                    <div class="form-group">
+                        <label for="Username">Username</label>
+                        <input type="text" id="Username" name="Username" value="@(Model?.Username ?? "")" placeholder="Enter your username" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="Password">Password</label>
+                        <input type="password" id="Password" name="Password" placeholder="Enter your password" required>
+                    </div>
+
+                    <button type="submit" class="submit-btn">
+                        Access System
+                    </button>
+                </form>
+
+                <div class="form-links">
+                    Don't have an account? 
+                    <a href="/Account/Register">Initialize Profile</a>
+                </div>
             </div>
-
-            <div class="form-group">
-                <label for="Password">Password</label>
-                <input type="password" id="Password" name="Password" placeholder="Enter your password" required>
-            </div>
-
-            <button type="submit" class="submit-btn">
-                Access System
-            </button>
-        </form>
-
-        <div class="form-links">
-            Don't have an account? 
-            <a href="/Account/Register">Initialize Profile</a>
         </div>
     </div>
 
@@ -416,21 +493,25 @@
                 });
             });
 
-            document.querySelector('form').addEventListener('submit', function(e) {
-                const formData = new FormData(this);
-                console.log('Login form submission data:');
-                for (let [key, value] of formData.entries()) {
-                    console.log(`${key}: ${value}`);
+            // Focus management
+            @if (identityServerEnabled)
+            {
+                <text>
+                // If Identity Server is enabled, don't auto-focus on legacy form
+                </text>
+            }
+            else
+            {
+                <text>
+                const usernameInput = document.getElementById('Username');
+                const passwordInput = document.getElementById('Password');
+                
+                if (usernameInput && usernameInput.value) {
+                    passwordInput.focus();
+                } else if (usernameInput) {
+                    usernameInput.focus();
                 }
-            });
-
-            const usernameInput = document.getElementById('Username');
-            const passwordInput = document.getElementById('Password');
-            
-            if (usernameInput.value) {
-                passwordInput.focus();
-            } else {
-                usernameInput.focus();
+                </text>
             }
         });
     </script>
