@@ -123,7 +123,14 @@ namespace WorkBot.Controllers
                 await _conversationService.SaveMessageAsync(conversationId, "assistant", response);
                 await _conversationService.UpdateConversationTimestampAsync(conversationId);
 
-                return Json(new { reply = response });
+                // Get updated token usage
+                var tokenUsage = await _conversationService.GetConversationTokenUsageAsync(conversationId);
+
+                return Json(new { 
+                    reply = response,
+                    model = _aiService.GetModelName(),
+                    tokenUsage = tokenUsage
+                });
             }
             catch (Exception ex)
             {
@@ -154,7 +161,10 @@ namespace WorkBot.Controllers
                 }).ToList<object>();
             }
 
-            return Json(new { recent, files, conversationId });
+            // Get token usage for the conversation
+            var tokenUsage = await _conversationService.GetConversationTokenUsageAsync(conversationId);
+
+            return Json(new { recent, files, conversationId, tokenUsage });
         }
 
         [HttpGet]
@@ -216,6 +226,85 @@ namespace WorkBot.Controllers
             {
                 _logger.LogError(ex, "[DELETE_CONV_API] Error deleting conversation");
                 return Json(new { success = false, error = $"Error deleting conversation: {ex.Message}" });
+            }
+        }
+
+        // NEW: Get model information
+        [HttpGet]
+        public IActionResult GetModelInfo()
+        {
+            try
+            {
+                var modelName = _aiService.GetModelName();
+                return Json(new { 
+                    model = modelName,
+                    status = "online"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[GET_MODEL_INFO] Error getting model info");
+                return Json(new { 
+                    model = "Unknown",
+                    status = "error"
+                });
+            }
+        }
+
+        // NEW: Get token usage for current conversation
+        [HttpGet]
+        public async Task<IActionResult> GetTokenUsage()
+        {
+            try
+            {
+                var conversationId = HttpContext.Session.GetString("ConversationId");
+                if (string.IsNullOrEmpty(conversationId))
+                {
+                    // Return default values for new conversation
+                    return Json(new TokenUsageDto
+                    {
+                        CurrentTokens = 0,
+                        MaxTokens = 20000,
+                        UsagePercentage = 0,
+                        IsNearLimit = false,
+                        IsAtLimit = false,
+                        RemainingTokens = 20000
+                    });
+                }
+
+                var tokenUsage = await _conversationService.GetConversationTokenUsageAsync(conversationId);
+                return Json(tokenUsage);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[GET_TOKEN_USAGE] Error getting token usage");
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        // NEW: Estimate tokens for input text
+        [HttpPost]
+        public IActionResult EstimateTokens([FromForm] string text)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(text))
+                {
+                    return Json(new { tokens = 0, isOverLimit = false });
+                }
+
+                var estimatedTokens = _conversationService.EstimateTokens(text);
+                var isOverLimit = estimatedTokens > 15000; // Arbitrary limit for single message
+
+                return Json(new { 
+                    tokens = estimatedTokens, 
+                    isOverLimit = isOverLimit 
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[ESTIMATE_TOKENS] Error estimating tokens");
+                return Json(new { error = ex.Message });
             }
         }
 

@@ -7,8 +7,15 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>WorkBot - Enhanced AI Assistant</title>
+    <title>Chat Bot - City of Windsor A.I Chat Bot</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Favicon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon_io/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon_io/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon_io/favicon-16x16.png">
+    <link rel="manifest" href="/favicon_io/site.webmanifest">
+
     <style>
         * { 
             box-sizing: border-box; 
@@ -111,14 +118,16 @@
             margin-bottom: 15px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 15px;
         }
 
         .windsor-logo-small {
-            width: 30px;
-            height: 30px;
+            width: 80px;
+            height: 80px;
             background: url('/images/windsorLogo.png') center/contain no-repeat;
             filter: drop-shadow(0 0 5px rgba(0, 212, 255, 0.5));
+            filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.8)) brightness(1.3) contrast(1.2);
+            flex-shrink: 0;
         }
 
         .new-chat-btn {
@@ -1075,7 +1084,7 @@
             <div class="sidebar-header">
                 <h2>
                     <div class="windsor-logo-small"></div>
-                    WorkBot
+                    Chat Bot
                 </h2>
                 <button class="new-chat-btn" onclick="newConversation()">
                     ➕ New Session
@@ -1106,7 +1115,7 @@
             <div class="header">
                 <div class="header-left">
                     <button class="toggle-sidebar" onclick="toggleSidebar()">☰</button>
-                    <h1>🧠 Enhanced WorkBot</h1>
+                    <h1>🧠 City of Windsor A.I Chat Bot</h1>
                 </div>
                 <div class="header-right">
                     <div class="token-indicator" id="token-indicator">
@@ -1135,7 +1144,7 @@
 
             <div id="chat">
                 <div class="empty-state" id="empty-state">
-                    <h3>Welcome to Enhanced WorkBot!</h3>
+                    <h3>Welcome to City of Winsor A.I Chat Bot!</h3>
                     <p>Your intelligent AI assistant with memory and multi-file processing capabilities.</p>
                     
                     <div class="feature-list">
